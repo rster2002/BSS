@@ -1,0 +1,28 @@
+{
+	"name": "BSS",
+	"productName": "BlueStone Script",
+	"version": "0.0.4",
+	"description": "A tool to make life easier",
+	"repository": "https://github.com/rster2002/BSS",
+	"main": "app.js",
+	"scripts": {
+		"start": "electron .",
+		"build": "build --win",
+		"ship": "build --win -p always"
+	},
+	"author": "Bjørn Reemer",
+	"license": "MIT",
+	"devDependencies": {
+		"electron": "^2.0.10",
+		"electron-builder": "^20.28.4"
+	},
+	"dependencies": {
+		"ajv": "^6.5.4",
+		"chokidar": "^2.0.4",
+		"electron-is-dev": "^0.3.0",
+		"electron-updater": "^3.1.2",
+		"fs": "0.0.1-security",
+		"jquery": "^3.3.1",
+		"require": "^2.4.20"
+	}
+}

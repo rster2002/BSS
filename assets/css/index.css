@@ -1,0 +1,192 @@
+:root {
+	--barHeight: 36px;
+	--defaultColor: #2d2d2d;
+}
+
+html, body, #app {
+	height: 100%;
+	width: 100%;
+	padding: 0;
+	margin: 0;
+	background-color: var(--defaultColor);
+}
+
+
+h1, p, input {
+	margin: 0;
+	font-family: 'Roboto', sans-serif;
+}
+
+/* START BAR */
+
+.bar {
+	width: 100%;
+	height: var(--barHeight);
+	z-index: 1;
+}
+
+.button {
+	height: calc(var(--barHeight) - 12px);
+	padding: 6px 8px;
+	display: inline-block;
+	color: #bdbdbd;
+}
+
+.button .inner {
+	height: 24px;
+	background-color: #404040;
+	border-radius: 12px;
+	box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12);
+	cursor: pointer;
+}
+
+.button .inner.blue {
+	background-image: linear-gradient( 135deg, #CE9FFC 10%, #7367F0 100%);
+	color: white;
+	display: none;
+}
+
+.button .inner p {
+	float: left;
+    margin: 3px 12px 0px 5px;
+    font-size: 16px;
+    height: 16px;
+}
+
+.button .inner .iconWrapper {
+	float: left;
+	height: 24px;
+	width: 24px;
+	border-radius: 12px;
+	float: left;
+}
+
+.button .inner .iconWrapper i {
+	font-size: 16px;
+	position: relative;
+	top: 4px;
+	left: 4px;
+}
+
+/* END BAR */
+
+/* START OVERLAY */
+
+.overlay {
+	height: 95%;
+	width: 95%;
+	box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12);
+	border-radius: 5px;
+	position: fixed;
+	top: 2.5%;
+	left: 2.5%;
+	z-index: 5;
+	background-color: var(--defaultColor);
+	padding: 0px 5px;
+	display: none;
+	overflow-x: auto;
+}
+
+.overlay input {
+	height: 90%;
+	border-radius: 5px;
+	border: solid 2px #0396FF;
+	outline: 0;
+	background-color: transparent;
+	color: white;
+	padding: 0px 5px;
+	font-size: 16px;
+}
+
+.overlay .row {
+	width: 100%;
+	height: 28px;
+	padding: 16px 0px;
+}
+
+.overlay .row input {
+	width: calc(100% - 15px);
+}
+
+.overlay .row button {
+	width: 100%;
+	background-color: transparent;
+	outline: 0;
+	border-radius: 5px;
+	border: solid 2px #0396FF;
+	color: white;
+	cursor: pointer;
+}
+
+.overlay .row.dir input {
+	width: calc(90% - 15px);
+	margin-right: 2.5%;
+	float: left;
+}
+
+.overlay .row.dir button {
+	width: 7.5%;
+	float: left;
+}
+
+/* END OVERLAY */
+
+/* START PROJECT PAGE */
+
+.projects {
+	height: calc(100% - var(--barHeight));
+	width: 100%;
+	overflow-y: auto;
+}
+
+.projects .project {
+	width: 90%;
+	height: 56px;
+	box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12);
+	border-radius: 5px;
+	position: relative;
+	top: 5%;
+	left: 5%;
+	cursor: pointer;
+}
+
+.projects .project h1 {
+	margin: 0;
+    width: 98%;
+    position: relative;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+	color: white;
+	font-weight: 300;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* END PROJECT PAGE */
+
+/* START LOADER */
+
+.loader {
+	width: 100%;
+	height: calc(100% - var(--barHeight));
+}
+
+.loader .bar {
+	width: 90%;
+	height: 24px;
+	box-shadow: 0 11px 15px -7px rgba(0,0,0,.2), 0 24px 38px 3px rgba(0,0,0,.14), 0 9px 46px 8px rgba(0,0,0,.12);
+	position: relative;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	border-radius: 12px;
+}
+
+.loader .bar .progress {
+	height: 100%;
+	border-radius: 12px;
+	background-image: linear-gradient( 135deg, #ff3030 10%, #6018DC 100%);
+	width: 0%;
+}
