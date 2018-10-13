@@ -40,10 +40,11 @@ renderer = {
 
 			head.appendChild(link);
 		}
+	},
+	file(f) {
+		renderer.defaultFile = f;
 	}
 }
-
-_r = renderer;
 
 function compile() {
 	vueApp.show = {
@@ -64,24 +65,82 @@ function compile() {
 
 class mcfunction {
 	constructor(options) {
+		let fileDefined, fileStockValue;
+		if (options === undefined) {
+			options = {};
+		}
+		if (options.file !== undefined) {
+			fileDefined = true;
+			fileStockValue = options.file;
+		} else {
+			fileDefined = false;
+		}
+		if (renderer.defaultFile !== undefined && typeof renderer.defaultFile === "string" && options.file === undefined) {
+			options.file = renderer.defaultFile;
+		}
 		totalFiles += 1;
 		this._output = "";
+
 		if (options !== undefined) {
 			if (options.file !== undefined) {
-				this._workingFile = options.file;
+				console.trace("DD");
+				if (fileDefined) {
+					options.file = fileStockValue;
+				} else {
+					if (renderer.defaultFile === "--relative") {
+						let src = document.currentScript.src;
+						console.log(src, renderer);
+						let r = "file:///" + vueApp.currentPrj.workspaceDir;
+						let file = src.replace(r, "").replace(".js", ".mcfunction");
+						options.file = file;
+						console.log("BB", options, file, vueApp.currentPrj.workspaceDir);
+					} else if (renderer.defaultFile === "--root") {
+						let src = document.currentScript.src;
+						let i = src.replace("file:///" + vueApp.currentPrj.workspaceDir, "").split("/");
+						let file = i[i.length - 1].replace(".js", ".mcfunction");
+						options.file = file;
+					} else {
+						options.file = renderer.defaultFile;
+					}
+				}
 			}
+			this._workingFile = options.file;
 
 			if (options.dev !== undefined) {
 				this._dev = options.dev;
+			} else {
+				this._dev = false;
 			}
+		} else {
+			this._dev = false;
+			this._workingFile = "index.mcfunction";
 		}
+		console.log(options);
 	}
 
-	extend(renderProcess) {
-		this.render(renderProcess, true);
+	r(rendererProcess) {
+		this.render(rendererProcess);
+	}
+
+	e(rendererProcess) {
+		this.extendAndRender(rendererProcess);
+	}
+
+	ear(rendererProcess) {
+		this.extendAndRender(rendererProcess);
+	}
+
+	extend(rendererProcess) {
+		this.render(rendererProcess, "extendAndRender");
+	}
+
+	extendAndRender(rendererProcess) {
+		this.render(rendererProcess, "extendAndRender");
 	}
 
 	render(renderProcess, extend) {
+		var internalDev = this._dev;
+		var internalWorkingFile = this._workingFile;
 		var rtrn;
 		var vars = {}, scoreboards = {};
 		var renderFunctions = [];
@@ -97,6 +156,7 @@ class mcfunction {
 			let percentage = (completedFiles / totalFiles) * 100;
 			console.log(completedFiles, totalFiles, percentage)
 			$(".loader .bar .progress").css("width", percentage + "%");
+			percentage = percentage > 100 ? 100 : percentage;
 			if (percentage === 100) {
 				vueApp.show = {
 					build: true,
@@ -114,27 +174,33 @@ class mcfunction {
 				function ifScoreboard(scoreboard) {
 					if (scoreboards[scoreboard] === undefined) {
 						scoreboards[scoreboard] = true;
-						return true;
 					}
+					return true;
 				}
 
-				console.log("VAR")
+				console.log(words)
 				var scoreboard = words[1];
 				var operation = words[2];
 				var value = words[3];
 
-				if (ifScoreboard(scoreboard)) {
-					render("scoreboard objectives add " + scoreboard + " dummy");
-				};
-				if (isNumber(value)) {
+				if (operation !== "") {
+					if (ifScoreboard(scoreboard)) {
+						render("scoreboard objectives add " + scoreboard + " dummy");
+					}
+					if (isNumber(value)) {
 
-					// if the value is a static number
-					if (operation === "=") {
-						return `scoreboard players set @s ` + scoreboard + ` ` + value;
-					} else if (operation === "+=") {
-						return `scoreboard players add @s ` + scoreboard + ` ` + value;
-					} else if (operation === "-=") {
-						return `scoreboard players remove @s ` + scoreboard + ` ` + value;
+						// if the value is a static number
+						if (operation === "=") {
+							return `scoreboard players set @s ` + scoreboard + ` ` + value;
+						} else if (operation === "+=") {
+							return `scoreboard players add @s ` + scoreboard + ` ` + value;
+						} else if (operation === "-=") {
+							return `scoreboard players remove @s ` + scoreboard + ` ` + value;
+						}
+					}
+				} else {
+					if (ifScoreboard(scoreboard)) {
+						render("scoreboard objectives add " + scoreboard + " dummy");
 					}
 				}
 			},
@@ -527,20 +593,19 @@ class mcfunction {
 			}
 		}
 
-		// Used for diffientiating between .extend and directly using .render
-		if (extend === undefined || extend === false) {
-			// if using .render directly
-			if (this._dev === true) {
-				console.log(rtrn);
+		function exportContent(content) {
+			if (internalDev === true) {
+				console.log(content);
 				completeFile();
 			} else {
-				let url = vueApp.currentPrj.exportDir + this._workingFile;
+				let url = vueApp.currentPrj.exportDir + internalWorkingFile;
+				url = url.split("%20").join(" ");
 				let dir = url;
 				let p = dir.split("/");
-				p.pop()
+				p.pop();
 				let i = p.join("/") + "/";
 				fs.mkdir(i, function() {
-					fs.writeFile(url, rtrn, function(err) {
+					fs.writeFile(url, content, function(err) {
 						if (err) {
 							console.log(err);
 						} else {
@@ -550,9 +615,18 @@ class mcfunction {
 				});
 				completeFile();
 			}
-		} else {
-			// if using .extende
+		}
+
+		// Used for diffientiating between .extend and directly using .render
+		if (extend === undefined || extend === false) {
+			// if using .render directly
+			exportContent(rtrn);
+		} else if (extend === "extend") {
+			// if using .extend
 			this._output = rtrn;
+		} else if (extend === "extendAndRender") {
+			this._output = rtrn;
+			exportContent(this._output);
 		}
 	}
 }
@@ -658,3 +732,8 @@ class loottable {
 		}
 	}
 }
+
+// defines some shorthands
+const mcf = mcfunction;
+const lt = mcfunction;
+const _r = renderer;

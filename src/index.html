@@ -20,11 +20,6 @@
 		<link rel="stylesheet" href="../assets/css/typography.css" />
 	</head>
 	<body>
-		<div id="loaded">
-			<div id="files">
-
-			</div>
-		</div>
 		<div id="app">
 			<div class="overlay addPrj">
 				<div class="row">
@@ -47,10 +42,11 @@
 			</div>
 			<div class="bar z1">
 				<bar-button v-if="show.build == true" icon="build" @click.native="build()">Build</bar-button>
-				<bar-button v-if="show.projects == true" icon="view_agenda" @click.native="openPrjs()">Projects</bar-button>
+				<bar-button v-if="show.projects == true" icon="book" @click.native="openPrjs()">Projects</bar-button>
+				<bar-button v-if="show.projects == true" icon="remove" @click.native="deleteProject()">Remove</bar-button>
 				<bar-button v-if="show.add == true" icon="add" @click.native="addPrj()">Add project</bar-button>
-				<div class="button" style="float: right;" onclick="ipcRenderer.send('quitAndInstall')">
-					<div class="inner blue">
+				<div class="button" style="float: right;" onclick="update();">
+					<div class="inner blue" id="updateButton">
 						<div class="iconWrapper">
 							<i class="material-icons">get_app</i>
 						</div>
@@ -74,5 +70,10 @@
 		<script src="../assets/js/keywords.js"></script>
 		<script src="../assets/js/compiler.js"></script>
 		<script src="../assets/js/app.js"></script>
+		<div id="loaded">
+			<div id="files">
+
+			</div>
+		</div>
 	</body>
 </html>

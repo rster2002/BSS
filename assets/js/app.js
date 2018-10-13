@@ -31,6 +31,10 @@ const isDev = require('electron-is-dev');
 
 const idCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
+function update() {
+	ipcRenderer.send('quitAndInstall')
+}
+
 function replaceExplit(input, replace, replaced) {
 	var rtrn = "";
 	var r = input.split(replace);
@@ -51,11 +55,9 @@ function replaceExplit(input, replace, replaced) {
 	return rtrn;
 }
 
-if (!isDev) {
-	ipcRenderer.on('updateReady', function(event, text) {
-		$('.inner.blue').show();
-	})
-}
+ipcRenderer.on('updateReady', function(event, text) {
+	$('#updateButton').show();
+})
 
 function randomString(characters, l) {
 	var retn = "";
@@ -112,6 +114,7 @@ vueApp = new Vue({
 		confirmPrj() {
 			var id = randomString(idCharacters, 32);
 			var i = replaceExplit(vueApp.newPrj.workspaceDir, "\\", "/");
+			i = replaceExplit(i, " ", "%20");
 			console.log(i);
 			if (i[i.length - 1] !== "/") {
 				console.log(i);
@@ -120,7 +123,8 @@ vueApp = new Vue({
 			}
 			var work = i;
 			console.log(i, work);
-			var i = replaceExplit(vueApp.newPrj.exportDir, "\\", "/");
+			i = replaceExplit(vueApp.newPrj.exportDir, "\\", "/");
+			i = replaceExplit(i, " ", "%20");
 			if (i[i.length - 1] !== "/") {
 				i += "/"
 			}
@@ -169,6 +173,22 @@ vueApp = new Vue({
 		},
 		build() {
 			compile();
+		},
+		deleteProject() {
+			if (confirm("Are you sure you want to delete this project?")) {
+				let current = this.currentPrj;
+				this.prjById[current.id] = null;
+				this.projects.splice(this.projects.indexOf(current), 1);
+				$('.projects').show();
+				$('.loader').hide();
+				store("projects", []);
+				store("prjById", {});
+				this.show = {
+					build: false,
+					projects: false,
+					add: true
+				}
+			}
 		}
 	}
 });

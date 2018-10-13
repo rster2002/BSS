@@ -75,9 +75,8 @@ function createWindow () {
 // Some APIs can only be used after this event occurs.
 app.on('ready', function() {
 	createWindow();
-	if (!isDev) {
-		autoUpdater.checkForUpdates();
-	}
+	console.log("c", autoUpdater);
+	autoUpdater.checkForUpdates();
 })
 
 // Quit when all windows are closed.
@@ -89,12 +88,14 @@ app.on('window-all-closed', () => {
 	}
 })
 
-autoUpdater.on('update-downloaded', info => {
-	win.webContents.send('updateReady');
-})
+// when the update has been downloaded and is ready to be installed, notify the BrowserWindow
+autoUpdater.on('update-downloaded', (info) => {
+    win.webContents.send('updateReady')
+});
 
-ipcMain.on('quitAndInstall', (event, arg) => {
-	autoUpdater.quitAndInstall();
+// when receiving a quitAndInstall signal, quit and install the new version ;)
+ipcMain.on("quitAndInstall", (event, arg) => {
+    autoUpdater.quitAndInstall();
 })
 
 app.on('activate', () => {
