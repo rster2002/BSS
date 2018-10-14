@@ -1,7 +1,7 @@
 {
 	"name": "BSS",
 	"productName": "BlueStone Script",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"description": "A tool to make life easier",
 	"repository": "https://github.com/rster2002/BSS",
 	"main": "app.js",
