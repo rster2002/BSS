@@ -21,6 +21,15 @@
 	</head>
 	<body>
 		<div id="app">
+			<div class="scim" v-if="error.show == true">
+				<div class="overlay shown error">
+					<h1 style="color: #ff3030;">Error</h1>
+					<h2>@ {{ error.source }}, line: {{ error.line }}:{{ error.col }}</h2>
+					<div class="divider"></div>
+					<h2>{{ error.message }}</h2>
+					<button @click="closeError()">Close</button>
+				</div>
+			</div>
 			<div class="overlay addPrj">
 				<div class="row">
 					<input v-model="newPrj.name" placeholder="Project name" />
@@ -61,7 +70,7 @@
 			</div>
 			<div class="loader" style="display: none;">
 				<div class="bar">
-					<div class="progress">
+					<div class="progress" v-bind:class="{ error: lastError }">
 
 					</div>
 				</div>

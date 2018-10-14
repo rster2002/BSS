@@ -31,10 +31,7 @@ const isDev = require('electron-is-dev');
 
 const idCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-function update() {
-	ipcRenderer.send('quitAndInstall')
-}
-
+// Replace all
 function replaceExplit(input, replace, replaced) {
 	var rtrn = "";
 	var r = input.split(replace);
@@ -55,10 +52,17 @@ function replaceExplit(input, replace, replaced) {
 	return rtrn;
 }
 
+// When a update has been downloaded, show 'update' button
 ipcRenderer.on('updateReady', function(event, text) {
 	$('#updateButton').show();
-})
+});
 
+// Updates the app
+function update() {
+	ipcRenderer.send('quitAndInstall')
+}
+
+// function for generating random strings for id's
 function randomString(characters, l) {
 	var retn = "";
 	for (var i = 0; i < l; i++) {
@@ -68,10 +72,11 @@ function randomString(characters, l) {
 	return retn;
 }
 
+// registers vue component for bar buttons
 Vue.component('bar-button', {
 	template: "<div class='button'><div class='inner'><div class='iconWrapper'><i class='material-icons'>{{ icon }}</i></div><p><slot></slot></p></div></div>",
 	props: ['text', 'icon']
-})
+});
 
 vueApp = new Vue({
 	el: "#app",
@@ -95,7 +100,11 @@ vueApp = new Vue({
 			exportDir: "",
 			namespace: "",
 			id: ""
-		}
+		},
+		error: {
+			show: false
+		},
+		lastError: false
 	},
 	methods: {
 		addPrj() {
@@ -189,9 +198,37 @@ vueApp = new Vue({
 					add: true
 				}
 			}
+		},
+		closeError() {
+			this.error.show = false;
+			$("#topTitle").text("BlueStone Script");
+			$(".loader .bar .progress").css("width", "100%");
+			vueApp.show = {
+				build: true,
+				projects: true,
+				add: false
+			}
 		}
 	}
 });
+
+window.addEventListener('error', function(e) {
+	let source = e.filename.replace("file:///" + vueApp.currentPrj.workspaceDir, "workspace:");
+	console.log("error");
+	vueApp.error = {
+		message: e.message,
+		source: source,
+		line: e.lineno,
+		col: e.colno,
+		error: e.error,
+		show: true
+	};
+	vueApp.lastError = true;
+});
+
+window.onerror = function(message, source, line, col, error) {
+
+}
 
 if (load("projects") === null) {
 	store("projects", []);

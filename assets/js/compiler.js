@@ -52,6 +52,7 @@ function compile() {
 		projects: false,
 		add: false
 	}
+	vueApp.lastError = false;
 	$("#files").remove();
 	$("#loaded").append("<div id='files'></div>")
 	$(".loader .bar .progress").css("width", "5%");
