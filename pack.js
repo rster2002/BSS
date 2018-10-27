@@ -4,20 +4,20 @@ var options = {
     'arch': 'ia32',
     'platform': 'win32',
     'dir': './',
-    'app-copyright': 'rster2002',
-    'app-version': '0.0.1',
+    'app-copyright': 'Bjørn Reemer',
+    'app-version': '0.0.7',
     'asar': true,
-    'name': 'Minecraft-Packager',
+    'name': 'BlueStone Script',
     'out': './releases',
     'overwrite': true,
     'prune': true,
-    'version': '0.0.1',
+    'version': '0.0.7',
     'version-string': {
         'CompanyName': 'rster2002',
-        'FileDescription': 'Packages for minecraft', /* This is what display windows on task manager, shortcut and process */
-        'OriginalFilename': 'Minecraft-Packager',
-        'ProductName': 'Minecraft Packager',
-        'InternalName': 'Minecraft-Packager'
+        'FileDescription': 'Compiler for .mcfunctions', /* This is what display windows on task manager, shortcut and process */
+        'OriginalFilename': 'BSS',
+        'ProductName': 'BlueStone Script',
+        'InternalName': 'BlueStone Script'
     }
 };
 packager(options, function done_callback(err, appPaths) {

@@ -13,7 +13,6 @@ Software is furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
-This software can't be claimed by anyone as their own property.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -26,23 +25,93 @@ THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 var totalFiles;
 
+// replaces all matches with a replacement
+function replaceAll(input, replace, replaced) {
+	var rtrn = "";
+	var r = input.split(replace);
+	for (var i = 0; i < r.length; ++i) {
+		if (i !== 0) {
+			let p = replaced;
+			rtrn += p;
+		}
+
+		if (input[i] !== "") {
+			rtrn += r[i];
+		}
+	}
+
+	if (rtrn === "") {
+		rtrn = input;
+	}
+	return rtrn;
+}
+
+function buildStringFromCharcode(arr, replace) {
+	let returning = "";
+	for (var i = 0; i < arr.length; ++i) {
+		var code = arr[i];
+		if (replace[code] !== undefined) {
+			returning += replace[code];
+		} else {
+			returning += String.fromCharCode(code);
+		}
+	}
+	console.log(arr, replace, returning);
+	return returning;
+}
+
+function readFileAndRender(file) {
+	if (file !== undefined || !file.includes("\\.mcfunction")) {
+		var url = vueApp.currentPrj.workspaceDir + file;
+		url = replaceAll(url, "%20", " ");
+		let chars = [];
+		for (var i = 0; i < url.length; ++i) {
+			chars.push(url.charCodeAt(i));
+		}
+		url = buildStringFromCharcode(chars, {13: ""});
+		console.log(url, chars.join("."));
+		fs.readFile(url, "utf8", (err, data) => {
+			if (err) {
+				console.log(data);
+				throw err;
+			}
+			let mc = new mcf({file: file});
+			mc.render({
+				content: data
+			});
+		});
+	}
+}
+
+// 97.115.115.101.116.115.47.103.101.110.101.114.97.116.105.111.110.47.100.101.112.111.115.105.116.47.116.105.116.97.110.105.117.109.13.46.109.99.102.117.110.99.116.105.111.110
+// 97.115.115.101.116.115.47.103.101.110.101.114.97.116.105.111.110.47.100.101.112.111.115.105.116.47.116.105.116.97.110.105.117.109.46.109.99.102.117.110.99.116.105.111.110
+//
+
+
 renderer = {
 	use(files) {
 		for (var i = 0; i < files.length; ++i) {
 			var file = files[i];
-			if (!file.includes(".js")) {
-				file = file + ".js";
-			}
-			var url = vueApp.currentPrj.workspaceDir + file;
-			var head  = document.getElementById('files');
-			var link  = document.createElement('script');
-			link.src = url;
+			if (file.includes(".mcfunction")) {
+				readFileAndRender(file);
+			} else {
+				if (!file.includes(".js")) {
+					file = file + ".js";
+				}
+				var url = vueApp.currentPrj.workspaceDir + file;
+				var head  = document.getElementById('files');
+				var link  = document.createElement('script');
+				link.src = url;
 
-			head.appendChild(link);
+				head.appendChild(link);
+			}
 		}
 	},
 	file(f) {
 		renderer.defaultFile = f;
+	},
+	setupFile(f) {
+		renderer.setupFileC = f;
 	}
 }
 
@@ -56,6 +125,8 @@ function compile() {
 	$("#files").remove();
 	$("#loaded").append("<div id='files'></div>")
 	$(".loader .bar .progress").css("width", "5%");
+	$(".loader .bar").addClass("active");
+	$(".compilerMessage").removeClass("show");
 	$("#topTitle").text("Rendering...");
 	totalFiles = 0;
 	completedFiles = 0;
@@ -81,6 +152,7 @@ class mcfunction {
 		}
 		totalFiles += 1;
 		this._output = "";
+		this._exported = false;
 
 		if (options !== undefined) {
 			if (options.file !== undefined) {
@@ -142,9 +214,12 @@ class mcfunction {
 	render(renderProcess, extend) {
 		var internalDev = this._dev;
 		var internalWorkingFile = this._workingFile;
+		var internalExported = this._exported;
 		var rtrn;
+		var dedicatedTo = "@s";
 		var vars = {}, scoreboards = {};
 		var renderFunctions = [];
+		var preLine = [];
 		var rtrn, runContent, staticRunContent;
 		if (extend) {
 			rtrn = this._output;
@@ -153,55 +228,84 @@ class mcfunction {
 		}
 
 		function completeFile() {
-			completedFiles += 1;
-			let percentage = (completedFiles / totalFiles) * 100;
-			console.log(completedFiles, totalFiles, percentage)
-			$(".loader .bar .progress").css("width", percentage + "%");
-			percentage = percentage > 100 ? 100 : percentage;
-			if (percentage === 100) {
-				vueApp.show = {
-					build: true,
-					projects: true,
-					add: false
+			if (internalExported === false) {
+				completedFiles += 1;
+				let percentage = (completedFiles / totalFiles) * 100;
+				vueApp.compilerMessage = `Rendered ${completedFiles} out of ${totalFiles} files`;
+				console.log(completedFiles, totalFiles, percentage)
+				$(".loader .bar .progress").css("width", percentage + "%");
+				percentage = percentage > 100 ? 100 : percentage;
+				if (percentage === 100) {
+					vueApp.show = {
+						build: true,
+						projects: true,
+						add: false
+					}
+					$("#topTitle").text("Done!");
+
+					setTimeout(function() {
+						$(".loader .bar").removeClass("active");
+						$(".loader .bar .progress").css("width", "0%");
+						$(".compilerMessage").addClass("show");
+					}, 3000);
 				}
-				$("#topTitle").text("Done!");
+			}
+		}
+
+		function defineScoreboard(scoreboard) {
+			if (scoreboards[scoreboard] === undefined) {
+				console.log("hellWOrld")
+				scoreboards[scoreboard] = scoreboard;
+				let c = `scoreboard objectives add ${scoreboard} dummy`;
+				if (renderer.setupFileC !== undefined) {
+					let f = new mcf({file: renderer.setupFileC});
+					f.extend({content: c});
+				} else {
+					render(c, vars)
+				}
 			}
 		}
 
 		// shortend text commands (used {{ }}) are defined here
 		var shortendCommands = {
 			var(words) {
-
-				function ifScoreboard(scoreboard) {
-					if (scoreboards[scoreboard] === undefined) {
-						scoreboards[scoreboard] = true;
-					}
-					return true;
-				}
-
-				console.log(words)
 				var scoreboard = words[1];
 				var operation = words[2];
 				var value = words[3];
+				console.log("HELLOW", words, scoreboards, scoreboard, operation, value)
 
-				if (operation !== "") {
-					if (ifScoreboard(scoreboard)) {
-						render("scoreboard objectives add " + scoreboard + " dummy");
-					}
-					if (isNumber(value)) {
+				if (scoreboard !== undefined) {
+					defineScoreboard(scoreboard);
 
-						// if the value is a static number
-						if (operation === "=") {
-							return `scoreboard players set @s ` + scoreboard + ` ` + value;
-						} else if (operation === "+=") {
-							return `scoreboard players add @s ` + scoreboard + ` ` + value;
-						} else if (operation === "-=") {
-							return `scoreboard players remove @s ` + scoreboard + ` ` + value;
+					if (operation !== "") {
+						console.log("d", isNumber(value));
+						if (isNumber(value)) {
+
+							// if the value is a static number
+							if (operation === "=") {
+								return `scoreboard players set ${dedicatedTo} ${scoreboard} ${value}`
+							} else if (operation === "+=") {
+								return `scoreboard players add ${dedicatedTo} ${scoreboard} ${value}`;
+							} else if (operation === "-=") {
+								return `scoreboard players remove ${dedicatedTo} ${scoreboard} ${value}`;
+							}
+						} else {
+							if (value === "time.daytime") {
+								return `execute store result score ${dedicatedTo} ${scoreboard} run time query daytime`;
+							} else if (value === "time.day") {
+								return `execute store result score ${dedicatedTo} ${scoreboard} run time query day`;
+							} else if (value === "time.gametime") {
+								return `execute store result score ${dedicatedTo} ${scoreboard} run time query gametime`;
+							} else {
+								if (operation === "=") {
+									return `scoreboard players operation ${dedicatedTo} ${scoreboard} = ${dedicatedTo} ${value}`
+								} else if (operation === "+=") {
+									return `scoreboard players operation ${dedicatedTo} ${scoreboard} += ${dedicatedTo} ${value}`;
+								} else if (operation === "-=") {
+									return `scoreboard players operation ${dedicatedTo} ${scoreboard} -= ${dedicatedTo} ${value}`;
+								}
+							}
 						}
-					}
-				} else {
-					if (ifScoreboard(scoreboard)) {
-						render("scoreboard objectives add " + scoreboard + " dummy");
 					}
 				}
 			},
@@ -210,6 +314,71 @@ class mcfunction {
 				var operation = words[2];
 				var value = isNumber(words[3]) ? Number(words[3]) : words[3];
 				vars[defining] = value;
+			},
+			operation(words, vars) {
+
+				console.log(words);
+
+				function evaluateOperator(scoreboard, operator, value) {
+					if (operator === "+" || operator === "-") {
+						let i = operator + "=";
+						let p = ["var", scoreboard, i, value];
+						return shortendCommands.var(p);
+					} else if (operator === "/" || operator === "*") {
+						let i = operator + "=";
+						if (isNumber(value)) {
+							defineScoreboard(`n${value}`);
+							render(`scoreboard players set ${dedicatedTo} n${value} ${value}`)
+							return `scoreboard players operation ${dedicatedTo} ${scoreboard} ${i} ${dedicatedTo} n${value}`;
+						}
+					}
+				}
+
+				// [operation i = 10]
+				var scoreboard = words[1];
+				var operator = words[2];
+				if (operator !== "=") {
+					words.shift();
+					if (words.length === 3) {
+						var value = words[2];
+						if (scoreboard !== undefined) {
+							defineScoreboard(scoreboard);
+
+							return evaluateOperator(scoreboard, operator, value);
+						}
+					} else if (words.length > 3) {
+						var scoreboard = words[0];
+						console.log(words);
+
+						defineScoreboard(scoreboard);
+
+						words.shift();
+
+						console.log(words);
+
+						var returning = "";
+						for (var i = 0; i < words.length; i += 2) {
+							var operator = words[i];
+							var value = words[i + 1];
+							returning += evaluateOperator(scoreboard, operator, value) + "\n";
+						}
+
+						return returning;
+					}
+				}
+			},
+			selector(words) {
+				if (words[1] !== undefined) {
+					dedicatedTo = words[1];
+				}
+			},
+			line(words) {
+				words.shift();
+				console.log(words);
+				preLine.push(words.join(" "));
+			},
+			escapeline(words) {
+				preLine.pop();
 			}
 		}
 
@@ -328,17 +497,6 @@ class mcfunction {
 						return temp;
 					});
 					runContent(content, vars);
-					// for (var i = 0; i < content.length; ++i) {
-					// 	var contentEntry = content[i];
-					// 	for (var o = 0; o < data.length; ++o) {
-					// 		for (var i = 0; i < data.length; ++i) {
-					// 			var ent = data[i];
-					// 			vars[key] = ent;
-					// 			console.log(contentEntry, ent, vars, key, data, list, i);
-					// 			render(contentEntry, vars);
-					// 		}
-					// 	}
-					// }
 					vars[key] = undefined;
 				}
 			},
@@ -360,7 +518,7 @@ class mcfunction {
 						return rid;
 					}
 					return "execute as @a[tag=!" + idFromString(content) + "] at @s run " + content;
-				})
+				});
 				runContent(content, vars);
 
 				renderFunctions.shift();
@@ -372,42 +530,25 @@ class mcfunction {
 			return !isNaN(n);
 		}
 
-		// replaces all matches with a replacement
-		function replaceAll(input, replace, replaced) {
-			var rtrn = "";
-			var r = input.split(replace);
-			for (var i = 0; i < r.length; ++i) {
-				if (i !== 0) {
-					let p = replaced;
-					rtrn += p;
-				}
-
-				if (input[i] !== "") {
-					rtrn += r[i];
-				}
-			}
-
-			if (rtrn === "") {
-				rtrn = input;
-			}
-			return rtrn;
-		}
-
 		// This renders the content into the file.
 		function renderAndReturn(content, vars) {
 
 			var temp = replaceAll(content, "\t", "") + "\n";
-			if (vars !== undefined) {
-				var entries = Object.entries(vars);
-				for (var i = 0; i < entries.length; ++i) {
-					var variable = "$" + entries[i][0];
-					var value = entries[i][1];
-					if (isNumber(value)) {
-						value = Number(value);
+			function evaluateVars() {
+				if (vars !== undefined) {
+					var entries = Object.entries(vars);
+					for (var i = 0; i < entries.length; ++i) {
+						var variable = "$" + entries[i][0];
+						var value = entries[i][1];
+						if (isNumber(value)) {
+							value = Number(value);
+						}
+						temp = replaceAll(temp, variable, value);
 					}
-					temp = replaceAll(temp, variable, value);
 				}
 			}
+
+			evaluateVars();
 
 			for (var i = 0; i < renderFunctions.length; ++i) {
 				var fn = renderFunctions[i];
@@ -437,20 +578,25 @@ class mcfunction {
 							if (words[0] === "") {
 								words.shift();
 							}
+							if (words[words.length - 1] === "") {
+								words.pop();
+							}
 
 							if (shortendCommands[words[0]] !== undefined) {
 								let returned = shortendCommands[words[0]](words, vars);
 								if (returned !== undefined && returned !== "") {
-									temp += inFront + returned + "\n";
+									temp += inFront + returned;
 								}
 							}
 						}
 					}
 				} else {
 					if (broken[0] !== "") {
-						temp += broken[0] + "\n";
+						temp += broken[0];
 					}
 				}
+
+				temp += "\n";
 			}
 
 
@@ -534,12 +680,68 @@ class mcfunction {
 				}
 			}
 
+
+			// for every line
+			var arr = temp.split("\n");
+			temp = "";
+			for (var i = 0; i < arr.length; ++i) {
+				var line = arr[i];
+
+				// if the line is a comment
+				if (line[0] !== "#") {
+
+					// finds every function call
+					var broken = line.split("function");
+					if (broken.length > 1) {
+						let x = broken[1].split(":");
+						broken.shift();
+						broken.shift();
+						let y = broken.length > 0 ? "function" : "";
+						var path = x[1] + y + broken.join("function");
+
+						console.log(path, broken);
+
+						// creates a path and if the path is not '' it runs it
+						if (!path.includes("\\.mcfunction")) {
+							let p = [];
+							p.push(path + ".mcfunction");
+							console.log(p, vueApp.currentPrj.workspaceDir + path + ".mcfunction");
+							_r.use(p);
+						}
+						// readFileAndRender(path + ".mcfunction");
+					}
+				}
+
+				temp += line + "\n";
+			}
+
+			console.log(preLine);
+			let l = temp.split("\n");
+			let tempPreline = "";
+			console.log(l);
+
+			if (preLine.length > 0) {
+				for (var i = 0; i < l.length; ++i) {
+					console.log(l[i], );
+					let c = l[i].charCodeAt(0);
+					if (l[i] !== "" && l[i] !== " " && c !== 13) {
+						tempPreline += preLine.join(" ") + " " + l[i] + "\n";
+					}
+				}
+				temp = tempPreline;
+			}
+
+			evaluateVars();
+
 			// adds the rendered line to the overal code
 			return temp;
 		}
 
 		function render(content, vars) {
-			rtrn += renderAndReturn(content, vars);
+			console.log(content);
+			let i = renderAndReturn(content, vars);
+			console.log(i);
+			rtrn += i;
 		}
 
 		// Basic runContent function
@@ -601,10 +803,17 @@ class mcfunction {
 			} else {
 				let url = vueApp.currentPrj.exportDir + internalWorkingFile;
 				url = url.split("%20").join(" ");
+				let chars = [];
+				for (var l = 0; l < url.length; ++l) {
+					chars.push(url.charCodeAt(l));
+				}
+				url = buildStringFromCharcode(chars, {13: ""});
+				console.log(url, chars.join("."));
 				let dir = url;
 				let p = dir.split("/");
 				p.pop();
 				let i = p.join("/") + "/";
+				console.log(i);
 				fs.mkdir(i, function() {
 					fs.writeFile(url, content, function(err) {
 						if (err) {
@@ -618,16 +827,21 @@ class mcfunction {
 			}
 		}
 
+		console.log(rtrn);
+
 		// Used for diffientiating between .extend and directly using .render
 		if (extend === undefined || extend === false) {
 			// if using .render directly
 			exportContent(rtrn);
+			this._exported = true;
 		} else if (extend === "extend") {
 			// if using .extend
 			this._output = rtrn;
+			this._exported = true;
 		} else if (extend === "extendAndRender") {
 			this._output = rtrn;
 			exportContent(this._output);
+			this._exported = true;
 		}
 	}
 }
@@ -718,6 +932,8 @@ class loottable {
 			let p = dir.split("/");
 			p.pop()
 			let i = p.join("/") + "/";
+
+
 			fs.mkdir(i, function() {
 				fs.writeFile(url, JSON.stringify(lootTable), function(err) {
 					if (err) {

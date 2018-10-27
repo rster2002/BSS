@@ -13,7 +13,6 @@ Software is furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
-This software can't be claimed by anyone as their own property.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -104,7 +103,8 @@ vueApp = new Vue({
 		error: {
 			show: false
 		},
-		lastError: false
+		lastError: false,
+		compilerMessage: "Nothing build yet..."
 	},
 	methods: {
 		addPrj() {
@@ -214,6 +214,22 @@ vueApp = new Vue({
 
 window.addEventListener('error', function(e) {
 	let source = e.filename.replace("file:///" + vueApp.currentPrj.workspaceDir, "workspace:");
+	if (source.includes("file://")) {
+		let appFiles = ["compiler", "app", "filewatcher", "index"];
+		let file;
+		for (var i = 0; i < appFiles.length; ++i) {
+			if (source.includes(appFiles[i] + ".js")) {
+				file = appFiles[i] + ".js";
+			}
+		}
+		source = "application:" + file;
+	} else if (source.includes("workspace:")) {
+		setTimeout(function() {
+			$(".loader .bar").removeClass("active");
+			$(".loader .bar .progress").css("width", "0%");
+			$(".compilerMessage").addClass("show");
+		}, 5000);
+	}
 	console.log("error");
 	vueApp.error = {
 		message: e.message,
