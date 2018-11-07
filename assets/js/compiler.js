@@ -379,6 +379,9 @@ class mcfunction {
 			},
 			escapeline(words) {
 				preLine.pop();
+			},
+			call(words) {
+				return `@#call@# ${words[1]}`;
 			}
 		}
 
@@ -732,6 +735,9 @@ class mcfunction {
 			}
 
 			evaluateVars();
+
+			console.log(temp.split("@#call@#").join("function"));
+			temp = temp.split("@#call@#").join("function");
 
 			// adds the rendered line to the overal code
 			return temp;
