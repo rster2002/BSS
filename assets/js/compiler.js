@@ -309,10 +309,23 @@ class mcfunction {
 					}
 				}
 			},
-			set(words, vars) {
+			set(words) {
 				var defining = words[1];
 				var operation = words[2];
-				var value = isNumber(words[3]) ? Number(words[3]) : words[3];
+				words.shift();
+				words.shift();
+				words.shift();
+				console.log(words);
+				var value;
+				if (words.length > 1) {
+					value = words.join(" ");
+				} else {
+					if (isNumber(words[0])) {
+						value = Number(words[0]);
+					} else {
+						value = words[0];
+					}
+				}
 				vars[defining] = value;
 			},
 			operation(words, vars) {
@@ -563,43 +576,45 @@ class mcfunction {
 			temp = "";
 			for (var i = 0; i < arr.length; ++i) {
 				var line = arr[i];
-				var r = "";
+				if (line[0] !== "#") {
+					var r = "";
 
-				// Splits the line at every shortend command
-				var broken = line.split("{{");
-				console.log(broken);
-				if (broken.length > 1) {
-					let inFront = broken.shift();
-					let rtrn = [];
-					for (var p = 0; p < broken.length; ++p) {
-						let ent = broken[p];
-						ent = ent.split("}}");
-						Object.assign(rtrn, ent);
-						console.log(line, inFront, broken, ent, rtrn);
-						if (ent.length > 1) {
-							let words = ent[0].split(" ");
-							if (words[0] === "") {
-								words.shift();
-							}
-							if (words[words.length - 1] === "") {
-								words.pop();
-							}
+					// Splits the line at every shortend command
+					var broken = line.split("{{");
+					console.log(broken);
+					if (broken.length > 1) {
+						let inFront = broken.shift();
+						let rtrn = [];
+						for (var p = 0; p < broken.length; ++p) {
+							let ent = broken[p];
+							ent = ent.split("}}");
+							Object.assign(rtrn, ent);
+							console.log(line, inFront, broken, ent, rtrn);
+							if (ent.length > 1) {
+								let words = ent[0].split(" ");
+								if (words[0] === "") {
+									words.shift();
+								}
+								if (words[words.length - 1] === "") {
+									words.pop();
+								}
 
-							if (shortendCommands[words[0]] !== undefined) {
-								let returned = shortendCommands[words[0]](words, vars);
-								if (returned !== undefined && returned !== "") {
-									temp += inFront + returned;
+								if (shortendCommands[words[0]] !== undefined) {
+									let returned = shortendCommands[words[0]](words, vars);
+									if (returned !== undefined && returned !== "") {
+										temp += inFront + returned;
+									}
 								}
 							}
 						}
+					} else {
+						if (broken[0] !== "") {
+							temp += broken[0];
+						}
 					}
-				} else {
-					if (broken[0] !== "") {
-						temp += broken[0];
-					}
-				}
 
-				temp += "\n";
+					temp += "\n";
+				}
 			}
 
 
@@ -609,36 +624,39 @@ class mcfunction {
 			for (var i = 0; i < arr.length; ++i) {
 				var returningLine = "";
 				var line = arr[i];
-				var r = "";
 
-				// Splits the line at every operation
-				var broken = line.split("$(");
-				console.log(broken);
-				if (broken.length > 1) {
-					let inFront = broken.shift();
-					temp += inFront;
-					let rtrn = [];
-					for (var p = 0; p < broken.length; ++p) {
-						let ent = broken[p];
-						ent = ent.split(")");
-						Object.assign(rtrn, ent);
-						console.log("P", {
-							line: line,
-							inFront: inFront,
-							broken: broken,
-							ent: ent,
-							rtrn: rtrn
-						});
+				if (line[0] !== "#") {
+					var r = "";
 
-						if (ent.length > 1) {
-							temp += eval(ent[0]) + ent[1];
+					// Splits the line at every operation
+					var broken = line.split("$(");
+					console.log(broken);
+					if (broken.length > 1) {
+						let inFront = broken.shift();
+						temp += inFront;
+						let rtrn = [];
+						for (var p = 0; p < broken.length; ++p) {
+							let ent = broken[p];
+							ent = ent.split(")");
+							Object.assign(rtrn, ent);
+							console.log("P", {
+								line: line,
+								inFront: inFront,
+								broken: broken,
+								ent: ent,
+								rtrn: rtrn
+							});
+
+							if (ent.length > 1) {
+								temp += eval(ent[0]) + ent[1];
+							}
 						}
-					}
 
-					temp += "\n";
-				} else {
-					if (broken[0] !== "") {
-						temp += broken[0] + "\n";
+						temp += "\n";
+					} else {
+						if (broken[0] !== "") {
+							temp += broken[0] + "\n";
+						}
 					}
 				}
 			}
@@ -649,36 +667,39 @@ class mcfunction {
 			for (var i = 0; i < arr.length; ++i) {
 				var returningLine = "";
 				var line = arr[i];
-				var r = "";
 
-				// Splits the line at every operation
-				var broken = line.split("$[");
-				console.log(broken);
-				if (broken.length > 1) {
-					let inFront = broken.shift();
-					temp += inFront;
-					let rtrn = [];
-					for (var p = 0; p < broken.length; ++p) {
-						let ent = broken[p];
-						ent = ent.split("]");
-						Object.assign(rtrn, ent);
-						console.log("P", {
-							line: line,
-							inFront: inFront,
-							broken: broken,
-							ent: ent,
-							rtrn: rtrn
-						});
+				if (line[0] !== "#") {
+					var r = "";
 
-						if (ent.length > 1) {
-							temp += eval(ent[0]) + ent[1];
+					// Splits the line at every operation
+					var broken = line.split("$[");
+					console.log(broken);
+					if (broken.length > 1) {
+						let inFront = broken.shift();
+						temp += inFront;
+						let rtrn = [];
+						for (var p = 0; p < broken.length; ++p) {
+							let ent = broken[p];
+							ent = ent.split("]");
+							Object.assign(rtrn, ent);
+							console.log("P", {
+								line: line,
+								inFront: inFront,
+								broken: broken,
+								ent: ent,
+								rtrn: rtrn
+							});
+
+							if (ent.length > 1) {
+								temp += eval(ent[0]) + ent[1];
+							}
 						}
-					}
 
-					temp += "\n";
-				} else {
-					if (broken[0] !== "") {
-						temp += broken[0] + "\n";
+						temp += "\n";
+					} else {
+						if (broken[0] !== "") {
+							temp += broken[0] + "\n";
+						}
 					}
 				}
 			}
@@ -735,6 +756,7 @@ class mcfunction {
 			}
 
 			evaluateVars();
+
 
 			console.log(temp.split("@#call@#").join("function"));
 			temp = temp.split("@#call@#").join("function");
@@ -820,6 +842,23 @@ class mcfunction {
 				p.pop();
 				let i = p.join("/") + "/";
 				console.log(i);
+
+				var arr = content.split("\n");
+				content = "";
+				var arrTemp = [];
+				for (var l = 0; l < arr.length; ++l) {
+					var line = arr[l];
+					console.log(line);
+					if (line !== "") {
+						arrTemp.push(line);
+					}
+				}
+
+				console.log(arr);
+
+				content = arrTemp.join("\n");
+
+				console.log(content, content.split("\n"));
 				fs.mkdir(i, function() {
 					fs.writeFile(url, content, function(err) {
 						if (err) {

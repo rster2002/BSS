@@ -230,7 +230,7 @@ window.addEventListener('error', function(e) {
 			$(".compilerMessage").addClass("show");
 		}, 5000);
 	}
-	console.log("error");
+	console.error(`[ERROR @ ${source} -> ${e.lineno}:${e.colno}] ${e.message}`);
 	vueApp.error = {
 		message: e.message,
 		source: source,
