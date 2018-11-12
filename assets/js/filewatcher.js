@@ -25,24 +25,25 @@ THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 const filewatcher = require('chokidar');
 
-function StartWatcher(path, fn){
+function StartWatcher(path, fn) {
       var chokidar = require("chokidar");
 
       watcher = chokidar.watch(path, {
-          ignored: /[\/\\]\./,
           persistent: true
       });
+
+	  //           ignored: /[\/\\]\./,
 
       function onWatcherReady(){
           console.info('From here can you check for real changes, the initial scan has been completed.');
       }
 
       // Declare the listeners of the watcher
-	  // watcher
-		//   .on('ready', onWatcherReady)
-		//   .on('raw', function(event, path, details) {
-		// 	  // This event should be triggered everytime something happens.
-		// 	  console.log('Raw event info:', event, path, details);
-		// 	  fn();
-		//   });
+	  watcher
+		  .on('ready', onWatcherReady)
+		  .on('raw', function(event, path, details) {
+			  // This event should be triggered everytime something happens.
+			  console.log('Raw event info:', event, path, details);
+			  // fn();
+		  });
 }

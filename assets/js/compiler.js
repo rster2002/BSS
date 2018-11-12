@@ -88,7 +88,7 @@ function readFileAndRender(file) {
 //
 
 
-renderer = {
+_reset = {
 	use(files) {
 		for (var i = 0; i < files.length; ++i) {
 			var file = files[i];
@@ -112,8 +112,12 @@ renderer = {
 	},
 	setupFile(f) {
 		renderer.setupFileC = f;
-	}
+		renderer.setupFileRef = new mcf({file: renderer.setupFileC});
+	},
+	scoreboards: {}
 }
+
+renderer = $.extend(true, {}, _reset);
 
 function compile() {
 	vueApp.show = {
@@ -130,6 +134,7 @@ function compile() {
 	$("#topTitle").text("Rendering...");
 	totalFiles = 0;
 	completedFiles = 0;
+	renderer = $.extend(true, {}, _reset);
 	renderer.use([
 		"index.js"
 	]);
@@ -252,16 +257,21 @@ class mcfunction {
 			}
 		}
 
-		function defineScoreboard(scoreboard) {
-			if (scoreboards[scoreboard] === undefined) {
+		function defineScoreboard(scoreboard, mode) {
+			if (mode === undefined) {
+				mode = "dummy";
+			}
+
+
+			if (renderer.scoreboards[scoreboard] === undefined) {
 				console.log("hellWOrld")
-				scoreboards[scoreboard] = scoreboard;
-				let c = `scoreboard objectives add ${scoreboard} dummy`;
+				renderer.scoreboards[scoreboard] = scoreboard;
+				let c = `scoreboard objectives add ${scoreboard} ${mode}`;
 				if (renderer.setupFileC !== undefined) {
-					let f = new mcf({file: renderer.setupFileC});
+					let f = renderer.setupFileRef;
 					f.extend({content: c});
 				} else {
-					render(c, vars)
+					render(c, vars);
 				}
 			}
 		}
@@ -275,10 +285,17 @@ class mcfunction {
 				console.log("HELLOW", words, scoreboards, scoreboard, operation, value)
 
 				if (scoreboard !== undefined) {
-					defineScoreboard(scoreboard);
 
-					if (operation !== "") {
+					if (operation === "as") {
+						console.log("OPERATION AS");
+						defineScoreboard(scoreboard, value);
+					} else {
+						defineScoreboard(scoreboard);
+					}
+
+					if (operation !== "" && operation !== undefined) {
 						console.log("d", isNumber(value));
+
 						if (isNumber(value)) {
 
 							// if the value is a static number
@@ -901,15 +918,43 @@ class loottable {
 			console.error("No export file defined");
 			return;
 		}
+		totalFiles += 1;
 		this._dev = options.dev !== undefined ? options.dev : false;
 		this._workingFile = options.file;
 	}
 
 	render(lootTable) {
-
 		var returningEntries = [];
 		var lastWeight = 1;
 		var lastCalculatedWeight = 1;
+		var internalExported = false;
+		var internalDev = this._dev;
+		var internalWorkingFile = this._workingFile;
+
+		function completeFile() {
+			if (internalExported === false) {
+				completedFiles += 1;
+				let percentage = (completedFiles / totalFiles) * 100;
+				vueApp.compilerMessage = `Rendered ${completedFiles} out of ${totalFiles} files`;
+				console.log(completedFiles, totalFiles, percentage)
+				$(".loader .bar .progress").css("width", percentage + "%");
+				percentage = percentage > 100 ? 100 : percentage;
+				if (percentage === 100) {
+					vueApp.show = {
+						build: true,
+						projects: true,
+						add: false
+					}
+					$("#topTitle").text("Done!");
+
+					setTimeout(function() {
+						$(".loader .bar").removeClass("active");
+						$(".loader .bar .progress").css("width", "0%");
+						$(".compilerMessage").addClass("show");
+					}, 3000);
+				}
+			}
+		}
 
 		function runEntries(entries, collection) {
 			var totalWeight = 0;
@@ -969,29 +1014,56 @@ class loottable {
 			newPools.push(pool);
 		}
 
-		lootTable.pools = newPools;
-		if (!this._dev) {
-			completeFile();
-			let url = vueApp.currentPrj.exportDir + this._workingFile;
-			let dir = url;
-			let p = dir.split("/");
-			p.pop()
-			let i = p.join("/") + "/";
+		function exportContent(content) {
+			if (internalDev === true) {
+				console.log(content);
+				completeFile();
+			} else {
+				let url = vueApp.currentPrj.exportDir + internalWorkingFile;
+				url = url.split("%20").join(" ");
+				let chars = [];
+				for (var l = 0; l < url.length; ++l) {
+					chars.push(url.charCodeAt(l));
+				}
+				url = buildStringFromCharcode(chars, {13: ""});
+				console.log(url, chars.join("."));
+				let dir = url;
+				let p = dir.split("/");
+				p.pop();
+				let i = p.join("/") + "/";
+				console.log(i);
 
-
-			fs.mkdir(i, function() {
-				fs.writeFile(url, JSON.stringify(lootTable), function(err) {
-					if (err) {
-						console.log(err);
-					} else {
-						console.log("saved");
+				var arr = content.split("\n");
+				content = "";
+				var arrTemp = [];
+				for (var l = 0; l < arr.length; ++l) {
+					var line = arr[l];
+					console.log(line);
+					if (line !== "") {
+						arrTemp.push(line);
 					}
+				}
+
+				console.log(arr);
+
+				content = arrTemp.join("\n");
+
+				console.log(content, content.split("\n"));
+				fs.mkdir(i, function() {
+					fs.writeFile(url, content, function(err) {
+						if (err) {
+							console.log(err);
+						} else {
+							console.log("saved");
+						}
+					});
 				});
-			});
-		} else {
-			completeFile();
-			console.log(lootTable);
+				completeFile();
+			}
 		}
+
+		lootTable.pools = newPools;
+		exportContent(JSON.stringify(lootTable));
 	}
 }
 
