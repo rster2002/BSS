@@ -242,8 +242,8 @@ window.addEventListener('error', function(e) {
 	vueApp.lastError = true;
 });
 
-window.onerror = function(message, source, line, col, error) {
-
+function thr(err) {
+	setTimeout(function(){throw new Error(err)});
 }
 
 if (load("projects") === null) {

@@ -412,6 +412,203 @@ class mcfunction {
 			},
 			call(words) {
 				return `@#call@# ${words[1]}`;
+			},
+			if(words, vars, context) {
+				words.shift();
+				var cont;
+
+				// checks if it is an arrow function
+				console.log(words);
+				if (words[words.length - 1] === "@#arrow@#") {
+					cont = " run"
+				} else {
+					cont = "";
+				}
+
+				// start processing
+				words.pop();
+				var operation = words.join(" ");
+				console.log(operation);
+				if (operation.includes("&&") && operation.includes("||")) {
+					thr("Both \"&&\" and \"||\" are used inside one if statement");
+				} else {
+
+					// function for simple operators between a score and a static value
+					function evalOperatorSimple(value1, value2, operator) {
+						if (operator === "=" || operator === "==" || operator === "===") {
+							return `${value1}=${value2}`;
+						} else if (operator === ">") {
+							return `${value1}=${Number(value2) + 1}..`;
+						} else if (operator === ">=") {
+							return `${value1}=${value2}..`;
+						} else if (operator === "<") {
+							return `${value1}=..${Number(value2) - 1}`;
+						} else if (operator === "<=") {
+							return `${value1}=..${value2}`;
+						} else if (operator === "!=" || operator === "!==") {
+							return `${value1}=..${Number(value2) - 1},${value1}=${Number(value2) + 1}..`
+						}
+					}
+
+					// function for complex operations between two scores
+					function evalOperatorComplex(value1, value2, operator) {
+						if (operator === "==" || operator === "===") {operator = "="}
+						if (operator === "!==" ) {operator = "!="}
+
+						if (operator === "!=") {
+							return `if score ${dedicatedTo} ${value1} < ${dedicatedTo} ${value2} if score ${dedicatedTo} ${value1} > ${dedicatedTo} ${value2}`
+						} else {
+							return `if score ${dedicatedTo} ${value1} ${operator} ${dedicatedTo} ${value2}`;
+						}
+					}
+
+					// checks if the overal operation includes the following
+					if (operation.includes("&&")) {
+
+						// splits the operation into smaller operations
+						var operations = operation.split(" && ");
+
+						// vars for returning the content
+						var complexOperations = "";
+						var simpleOperations = [];
+
+						// for every single operation
+						for (var i = 0; i < operations.length; ++i) {
+							let internalOperation = operations[i].split(" ");
+							var value1 = internalOperation[0];
+							var operator = internalOperation[1];
+							var value2 = internalOperation[2];
+
+							// checks whether it should use simple or complex
+							if (isNumber(value2)) {
+								simpleOperations.push(evalOperatorSimple(value1, value2, operator));
+							} else {
+								complexOperations += " " + evalOperatorComplex(value1, value2, operator);
+							}
+						}
+
+						// returnes the completed command
+						return `execute as ${dedicatedTo}[scores={${simpleOperations.join(",")}}]${complexOperations}${cont}`
+					} else if (operation.includes("||")) {
+
+						// splits the operation into smaller operations
+						var operations = operation.split(" || ");
+
+						// var for returning content
+						var returningIfStatement = "";
+						for (var i = 0; i < operations.length; ++i) {
+							let internalOperation = operations[i].split(" ");
+
+							// gets the values and the operator
+							var value1 = internalOperation[0];
+							var operator = internalOperation[1];
+							var value2 = internalOperation[2];
+
+							// checks whether it should use simple or complex
+							console.log({
+								value1: value1,
+								operator: operator,
+								value2: value2,
+								isNub: isNumber(value2),
+								chunk: context
+							});
+							if (isNumber(value2)) {
+								returningIfStatement += `execute as ${dedicatedTo}[scores={${evalOperatorSimple(value1, value2, operator)}}]${cont}${context.tail}\n`
+							} else {
+								returningIfStatement += `execute as ${dedicatedTo} ${evalOperatorComplex(value1, value2, operator)}${cont}${context.tail}\n`
+							}
+						}
+
+						// returnes the completed command
+						return returningIfStatement;
+					} else {
+						var value1 = words[0];
+						var operator = words[1];
+						var value2 = words[2];
+
+						console.log({
+							value1: value1,
+							operator: operator,
+							value2: value2,
+							isNub: isNumber(value2)
+						});
+
+						if (isNumber(value2)) {
+							return  `execute as ${dedicatedTo}[scores={${evalOperatorSimple(value1, value2, operator)}}]${cont}`
+						} else {
+							return `execute as ${dedicatedTo} ${evalOperatorComplex(value1, value2, operator)}${cont}`
+						}
+					}
+				}
+			},
+			every(words, vars, context) {
+				words.pop();
+				console.log("W", words);
+
+				// gets the required values
+				var interval = words[1];
+				console.log(interval);
+				var timeUnit = interval[interval.length - 1];
+				console.log(timeUnit);
+				interval = interval.split("");
+				interval.pop();
+				interval = interval.join("");
+				var timeScaler = 0;
+				var cont;
+
+
+				if (isNumber(timeUnit)) {
+					thr("No time unit specified");
+				}
+
+				// checks if it is an arrow function
+				console.log(words);
+				if (words[words.length - 1] === "@#arrow@#") {
+					cont = " run"
+				} else {
+					cont = "";
+				}
+
+				if (timeUnit === "d") {
+					// one in-game day
+					timeScaler = 24000;
+				} else if (timeUnit === "h") {
+					// one in-game hour
+					timeScaler = 1000;
+				} else if (timeUnit === "s") {
+					// one real-life second
+					timeScaler = 20;
+				} else if (timeUnit === "t") {
+					// one in-game tick
+					timeScaler = 1;
+				} else if (timeUnit === "p") {
+					// one real-life day
+					timeScaler = 1728000;
+				} else if (timeUnit === "o") {
+					// one real-life hour
+					timeScaler = 72000;
+				} else if (timeUnit === "m") {
+					// one real-life minute
+					timeScaler = 1200;
+				} else {
+					thr("Unsupported time unit");
+					return;
+				}
+
+				function idFromString(line) {
+					var arr = line.split("");
+					var rid = 0;
+					for (var i = 0; i < arr.length; ++i) {
+						rid += arr[i].charCodeAt(0);
+					}
+					return rid;
+				}
+
+				var scoreboard = idFromString(context.tail) + timeUnit;
+				defineScoreboard(scoreboard);
+				var time = Number(interval) * timeScaler;
+
+				return `scoreboard players add ${dedicatedTo} ${scoreboard} 1\nexecute as ${dedicatedTo}[scores={${scoreboard}=${time}..}]${cont}${context.tail}\nexecute as ${dedicatedTo}[scores={${scoreboard}=${time}..}] run scoreboard players set @s ${scoreboard} 0`
 			}
 		}
 
@@ -581,6 +778,7 @@ class mcfunction {
 				}
 			}
 
+
 			evaluateVars();
 
 			for (var i = 0; i < renderFunctions.length; ++i) {
@@ -588,52 +786,122 @@ class mcfunction {
 				temp = fn(temp, vars);
 			}
 
-			// Splits the text into lines
 			var arr = temp.split("\n");
+			var rtrnArr = [];
 			temp = "";
 			for (var i = 0; i < arr.length; ++i) {
-				var line = arr[i];
-				if (line[0] !== "#") {
-					var r = "";
-
-					// Splits the line at every shortend command
-					var broken = line.split("{{");
-					console.log(broken);
-					if (broken.length > 1) {
-						let inFront = broken.shift();
-						let rtrn = [];
-						for (var p = 0; p < broken.length; ++p) {
-							let ent = broken[p];
-							ent = ent.split("}}");
-							Object.assign(rtrn, ent);
-							console.log(line, inFront, broken, ent, rtrn);
-							if (ent.length > 1) {
-								let words = ent[0].split(" ");
-								if (words[0] === "") {
-									words.shift();
-								}
-								if (words[words.length - 1] === "") {
-									words.pop();
-								}
-
-								if (shortendCommands[words[0]] !== undefined) {
-									let returned = shortendCommands[words[0]](words, vars);
-									if (returned !== undefined && returned !== "") {
-										temp += inFront + returned;
-									}
-								}
-							}
-						}
-					} else {
-						if (broken[0] !== "") {
-							temp += broken[0];
-						}
-					}
-
-					temp += "\n";
+				var line = arr[i]
+				if (!line.includes("#")) {
+					rtrnArr.push(line);
 				}
 			}
+			temp = rtrnArr.join("\n");
 
+			function contentInside(start, end, callback) {
+				var arr = temp.split(start);
+				var returnChunk = arr.shift();
+				console.log("A", arr);
+
+				for (var i = 0; i < arr.length; ++i) {
+					var chunk = arr[i];
+					console.log(chunk);
+					var chunkEnd = chunk.split(end);
+					var content = chunkEnd[0];
+					var chunkTail = chunkEnd[1];
+					var c = {
+						chunk: chunk,
+						end: chunkEnd,
+						content: content,
+						tail: chunkTail
+					}
+					console.log("CHUNKS", c);
+
+					var callbackReturned = callback(c);
+
+					if (callbackReturned !== undefined && callbackReturned !== false) {
+						if (callbackReturned.includes(c.tail)) {
+							returnChunk += callbackReturned;
+						} else {
+							returnChunk += callbackReturned + `${c.tail}`;
+						}
+					} else {
+						returnChunk += "";
+					}
+				}
+
+				temp = returnChunk;
+
+				evaluateVars();
+			}
+
+			function isolate(input) {
+				// isolates the command
+				if (input[input.length - 1] === "") {
+					input.pop();
+				}
+
+				if (input[0] === "") {
+					input.shift();
+				}
+
+				console.log(input);
+
+				return input;
+			}
+
+			temp = replaceAll(temp, "=>", "@#arrow@#");
+
+			// evaluates blocks
+			contentInside("<<", ">>", function(chunk) {
+				function idFromString(line) {
+					var arr = line.split("");
+					var rid = 0;
+					for (var i = 0; i < arr.length; ++i) {
+						rid += arr[i].charCodeAt(0);
+					}
+					return rid;
+				}
+
+				var chunkContentFile = new mcf({file: `bss_generated/${idFromString(chunk.content)}.mcfunction`});
+				chunkContentFile.render({
+					content: chunk.content
+				});
+
+				return `@#call@# ${vueApp.currentPrj.namespace}:bss_generated/${idFromString(chunk.content)}`
+			});
+
+
+			// evaluates commands
+			contentInside("{{", "}}", function(chunk) {
+				var broken = isolate(chunk.content.split(" "));
+
+				// checks if the keyword can be found
+				var commandIndexed = shortendCommands[broken[0]];
+				if (commandIndexed !== undefined) {
+					var returnedValue = commandIndexed(broken, vars, chunk);
+					if (returnedValue !== undefined && returnedValue !== false) {
+						return returnedValue;
+					} else {
+						return "";
+					}
+				}
+			});
+
+
+			// // evaluates the operation blocks
+			// contentInside("$(", ")", function(chunk) {
+			// 	var broken = isolate(chunk.content.split(" "));
+			// 	if (broken.length > 1) {
+			// 		for (var i = 0; i < broken.length; ++i) {
+			// 			if (isNumber(broken[i]) === false) {
+			// 				thr("Only numbers may be used inside operation blocks");
+			// 				return false;
+			// 			}
+			// 		}
+			//
+			// 		return eval(chunk.content);
+			// 	}
+			// });
 
 			// Splits the text into lines
 			var arr = temp.split("\n");
@@ -1069,5 +1337,5 @@ class loottable {
 
 // defines some shorthands
 const mcf = mcfunction;
-const lt = mcfunction;
+const lt = loottable;
 const _r = renderer;

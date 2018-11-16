@@ -16,7 +16,7 @@ function selectDirectory() {
 		properties: ['openDirectory']
 	}, function(path) {
 		console.log(path)
-	})
+	});
 }
 
 let win
@@ -32,7 +32,7 @@ function createWindow () {
 
   // and load the index.html of the app.
 	win.loadURL(url.format({
-		pathname: path.join(__dirname, 'src/index.html'),
+		pathname: path.join(__dirname, 'assets/index.html'),
 		protocol: 'file:',
 		slashes: true
 	}))
