@@ -1,7 +1,7 @@
 {
 	"name": "BSS",
 	"productName": "BlueStone Script",
-	"version": "0.0.11",
+	"version": "0.0.12",
 	"description": "A tool to make life easier",
 	"repository": "https://github.com/rster2002/BSS",
 	"main": "app.js",
@@ -23,6 +23,7 @@
 		"electron-updater": "^3.1.2",
 		"fs": "0.0.1-security",
 		"jquery": "^3.3.1",
+		"lodash": "^4.17.11",
 		"require": "^2.4.20"
 	}
 }

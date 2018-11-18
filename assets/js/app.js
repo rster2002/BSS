@@ -23,9 +23,9 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-const remote = require('electron').remote;
-const dialog = remote.require('electron').dialog;
-const ipcRenderer = require('electron').ipcRenderer;
+const path = require("path")
+const bss = require(path.resolve("./assets/js/compiler.js"));
+const { remove, dialog, ipcRenderer } = require('electron');
 const isDev = require('electron-is-dev');
 
 const idCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -253,6 +253,46 @@ if (load("projects") === null) {
 if (load("prjById") === null) {
 	store("prjById", {});
 }
+
+
+function compile() {
+	vueApp.lastError = false;
+	$(".loader .bar .progress").css("width", "5%");
+	$(".loader .bar").addClass("active");
+	$(".compilerMessage").removeClass("show");
+	$("#topTitle").text("Rendering...");
+	vueApp.show = {
+		build: false,
+		projects: false,
+		add: false
+	}
+
+	var prj = Object.assign({}, vueApp.currentPrj);
+	prj.logging = isDev;
+
+	bss.compile(prj, function(c) {
+		$(".loader .bar .progress").css("width", c.percentage + "%");
+
+		vueApp.compilerMessage = `Rendered ${c.completedFiles} out of ${c.totalFiles} files`
+
+		if (c.percentage === 100) {
+			vueApp.show = {
+				build: true,
+				projects: true,
+				add: false
+			}
+			$("#topTitle").text("Done!");
+
+			setTimeout(function() {
+				$(".loader .bar").removeClass("active");
+				$(".loader .bar .progress").css("width", "0%");
+				$(".compilerMessage").addClass("show");
+			}, 3000);
+		}
+	})
+}
+
+
 
 vueApp.projects = load("projects");
 vueApp.prjById = load("prjById");

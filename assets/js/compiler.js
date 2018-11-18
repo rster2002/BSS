@@ -23,7 +23,36 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+const fs = require("fs");
+
+var compilerVersion = "1.0.0";
 var totalFiles;
+var _ = require("lodash");
+var workspaceDir;
+var exportDir;
+var totalFiles;
+var completedFiles;
+var callback = function() {}
+var logging = false;
+var logToConsole = function() {
+	if (logging) {
+		var args = arguments;
+		for (var i = 0; i < args.length; ++i) {
+			var arg = args[i];
+			console.log(arg);
+		}
+	}
+}
+var traceToConsole = function() {
+	if (logging) {
+		var args = arguments;
+		for (var i = 0; i < args.length; ++i) {
+			var arg = args[i];
+			console.trace(arg);
+		}
+	}
+}
+
 
 // replaces all matches with a replacement
 function replaceAll(input, replace, replaced) {
@@ -56,23 +85,23 @@ function buildStringFromCharcode(arr, replace) {
 			returning += String.fromCharCode(code);
 		}
 	}
-	console.log(arr, replace, returning);
+	logToConsole(arr, replace, returning);
 	return returning;
 }
 
 function readFileAndRender(file) {
 	if (file !== undefined || !file.includes("\\.mcfunction")) {
-		var url = vueApp.currentPrj.workspaceDir + file;
+		var url = workspaceDir + file;
 		url = replaceAll(url, "%20", " ");
 		let chars = [];
 		for (var i = 0; i < url.length; ++i) {
 			chars.push(url.charCodeAt(i));
 		}
 		url = buildStringFromCharcode(chars, {13: ""});
-		console.log(url, chars.join("."));
+		logToConsole(url, chars.join("."));
 		fs.readFile(url, "utf8", (err, data) => {
 			if (err) {
-				console.log(data);
+				logToConsole(data);
 				throw err;
 			}
 			let mc = new mcf({file: file});
@@ -82,11 +111,6 @@ function readFileAndRender(file) {
 		});
 	}
 }
-
-// 97.115.115.101.116.115.47.103.101.110.101.114.97.116.105.111.110.47.100.101.112.111.115.105.116.47.116.105.116.97.110.105.117.109.13.46.109.99.102.117.110.99.116.105.111.110
-// 97.115.115.101.116.115.47.103.101.110.101.114.97.116.105.111.110.47.100.101.112.111.115.105.116.47.116.105.116.97.110.105.117.109.46.109.99.102.117.110.99.116.105.111.110
-//
-
 
 _reset = {
 	use(files) {
@@ -98,12 +122,16 @@ _reset = {
 				if (!file.includes(".js")) {
 					file = file + ".js";
 				}
-				var url = vueApp.currentPrj.workspaceDir + file;
-				var head  = document.getElementById('files');
-				var link  = document.createElement('script');
-				link.src = url;
 
-				head.appendChild(link);
+				let tempWorkspaceDir = replaceAll(workspaceDir, "%20", " ");
+
+				fs.readFile(tempWorkspaceDir + file, "utf8", function(err, data) {
+					if (err) {
+						throw err;
+					} else {
+						eval(data);
+					}
+				});
 			}
 		}
 	},
@@ -117,28 +145,7 @@ _reset = {
 	scoreboards: {}
 }
 
-renderer = $.extend(true, {}, _reset);
-
-function compile() {
-	vueApp.show = {
-		build: false,
-		projects: false,
-		add: false
-	}
-	vueApp.lastError = false;
-	$("#files").remove();
-	$("#loaded").append("<div id='files'></div>")
-	$(".loader .bar .progress").css("width", "5%");
-	$(".loader .bar").addClass("active");
-	$(".compilerMessage").removeClass("show");
-	$("#topTitle").text("Rendering...");
-	totalFiles = 0;
-	completedFiles = 0;
-	renderer = $.extend(true, {}, _reset);
-	renderer.use([
-		"index.js"
-	]);
-}
+renderer = _.cloneDeep(_reset);
 
 class mcfunction {
 	constructor(options) {
@@ -152,6 +159,7 @@ class mcfunction {
 		} else {
 			fileDefined = false;
 		}
+
 		if (renderer.defaultFile !== undefined && typeof renderer.defaultFile === "string" && options.file === undefined) {
 			options.file = renderer.defaultFile;
 		}
@@ -161,20 +169,20 @@ class mcfunction {
 
 		if (options !== undefined) {
 			if (options.file !== undefined) {
-				console.trace("DD");
+				traceToConsole("DD");
 				if (fileDefined) {
 					options.file = fileStockValue;
 				} else {
 					if (renderer.defaultFile === "--relative") {
 						let src = document.currentScript.src;
-						console.log(src, renderer);
-						let r = "file:///" + vueApp.currentPrj.workspaceDir;
+						logToConsole(src, renderer);
+						let r = "file:///" + workspaceDir;
 						let file = src.replace(r, "").replace(".js", ".mcfunction");
 						options.file = file;
-						console.log("BB", options, file, vueApp.currentPrj.workspaceDir);
+						logToConsole("BB", options, file, workspaceDir);
 					} else if (renderer.defaultFile === "--root") {
 						let src = document.currentScript.src;
-						let i = src.replace("file:///" + vueApp.currentPrj.workspaceDir, "").split("/");
+						let i = src.replace("file:///" + workspaceDir, "").split("/");
 						let file = i[i.length - 1].replace(".js", ".mcfunction");
 						options.file = file;
 					} else {
@@ -193,7 +201,7 @@ class mcfunction {
 			this._dev = false;
 			this._workingFile = "index.mcfunction";
 		}
-		console.log(options);
+		logToConsole(options);
 	}
 
 	r(rendererProcess) {
@@ -235,25 +243,15 @@ class mcfunction {
 		function completeFile() {
 			if (internalExported === false) {
 				completedFiles += 1;
-				let percentage = (completedFiles / totalFiles) * 100;
-				vueApp.compilerMessage = `Rendered ${completedFiles} out of ${totalFiles} files`;
-				console.log(completedFiles, totalFiles, percentage)
-				$(".loader .bar .progress").css("width", percentage + "%");
-				percentage = percentage > 100 ? 100 : percentage;
-				if (percentage === 100) {
-					vueApp.show = {
-						build: true,
-						projects: true,
-						add: false
-					}
-					$("#topTitle").text("Done!");
 
-					setTimeout(function() {
-						$(".loader .bar").removeClass("active");
-						$(".loader .bar .progress").css("width", "0%");
-						$(".compilerMessage").addClass("show");
-					}, 3000);
-				}
+				let percentage = (completedFiles / totalFiles) * 100;
+				if (percentage > 100) {percentage = 100}
+
+				callback({
+					completedFiles: completedFiles,
+					totalFiles: totalFiles,
+					percentage: percentage
+				});
 			}
 		}
 
@@ -264,7 +262,7 @@ class mcfunction {
 
 
 			if (renderer.scoreboards[scoreboard] === undefined) {
-				console.log("hellWOrld")
+				logToConsole("hellWOrld")
 				renderer.scoreboards[scoreboard] = scoreboard;
 				let c = `scoreboard objectives add ${scoreboard} ${mode}`;
 				if (renderer.setupFileC !== undefined) {
@@ -282,19 +280,19 @@ class mcfunction {
 				var scoreboard = words[1];
 				var operation = words[2];
 				var value = words[3];
-				console.log("HELLOW", words, scoreboards, scoreboard, operation, value)
+				logToConsole("HELLOW", words, scoreboards, scoreboard, operation, value)
 
 				if (scoreboard !== undefined) {
 
 					if (operation === "as") {
-						console.log("OPERATION AS");
+						logToConsole("OPERATION AS");
 						defineScoreboard(scoreboard, value);
 					} else {
 						defineScoreboard(scoreboard);
 					}
 
 					if (operation !== "" && operation !== undefined) {
-						console.log("d", isNumber(value));
+						logToConsole("d", isNumber(value));
 
 						if (isNumber(value)) {
 
@@ -332,7 +330,7 @@ class mcfunction {
 				words.shift();
 				words.shift();
 				words.shift();
-				console.log(words);
+				logToConsole(words);
 				var value;
 				if (words.length > 1) {
 					value = words.join(" ");
@@ -347,7 +345,7 @@ class mcfunction {
 			},
 			operation(words, vars) {
 
-				console.log(words);
+				logToConsole(words);
 
 				function evaluateOperator(scoreboard, operator, value) {
 					if (operator === "+" || operator === "-") {
@@ -378,13 +376,13 @@ class mcfunction {
 						}
 					} else if (words.length > 3) {
 						var scoreboard = words[0];
-						console.log(words);
+						logToConsole(words);
 
 						defineScoreboard(scoreboard);
 
 						words.shift();
 
-						console.log(words);
+						logToConsole(words);
 
 						var returning = "";
 						for (var i = 0; i < words.length; i += 2) {
@@ -404,7 +402,7 @@ class mcfunction {
 			},
 			line(words) {
 				words.shift();
-				console.log(words);
+				logToConsole(words);
 				preLine.push(words.join(" "));
 			},
 			escapeline(words) {
@@ -418,7 +416,7 @@ class mcfunction {
 				var cont;
 
 				// checks if it is an arrow function
-				console.log(words);
+				logToConsole(words);
 				if (words[words.length - 1] === "@#arrow@#") {
 					cont = " run"
 				} else {
@@ -428,7 +426,7 @@ class mcfunction {
 				// start processing
 				words.pop();
 				var operation = words.join(" ");
-				console.log(operation);
+				logToConsole(operation);
 				if (operation.includes("&&") && operation.includes("||")) {
 					thr("Both \"&&\" and \"||\" are used inside one if statement");
 				} else {
@@ -505,7 +503,7 @@ class mcfunction {
 							var value2 = internalOperation[2];
 
 							// checks whether it should use simple or complex
-							console.log({
+							logToConsole({
 								value1: value1,
 								operator: operator,
 								value2: value2,
@@ -526,7 +524,7 @@ class mcfunction {
 						var operator = words[1];
 						var value2 = words[2];
 
-						console.log({
+						logToConsole({
 							value1: value1,
 							operator: operator,
 							value2: value2,
@@ -543,13 +541,13 @@ class mcfunction {
 			},
 			every(words, vars, context) {
 				words.pop();
-				console.log("W", words);
+				logToConsole("W", words);
 
 				// gets the required values
 				var interval = words[1];
-				console.log(interval);
+				logToConsole(interval);
 				var timeUnit = interval[interval.length - 1];
-				console.log(timeUnit);
+				logToConsole(timeUnit);
 				interval = interval.split("");
 				interval.pop();
 				interval = interval.join("");
@@ -562,7 +560,7 @@ class mcfunction {
 				}
 
 				// checks if it is an arrow function
-				console.log(words);
+				logToConsole(words);
 				if (words[words.length - 1] === "@#arrow@#") {
 					cont = " run"
 				} else {
@@ -638,7 +636,7 @@ class mcfunction {
 						vars.loop = i;
 						simulatedReturn += runContentAndReturn(entry["content"], vars);
 					}
-					console.log("C", simulatedReturn);
+					logToConsole("C", simulatedReturn);
 					let simulatedLines = simulatedReturn.split("\n");
 					let totalLines = simulatedLines.length - 1; // z
 					let totalChunks = Math.floor(Math.sqrt(totalLines)); // x
@@ -671,13 +669,13 @@ class mcfunction {
 						tempFile.render({
 							content: chunk
 						});
-						console.log({
+						logToConsole({
 							chunk: chunk,
 							minValue: minValue,
 							maxValue: maxValue
 						})
 					}
-					console.log({
+					logToConsole({
 						totalLines: totalLines,
 						totalChunks: totalChunks,
 						chunkSize: chunkSize,
@@ -711,7 +709,7 @@ class mcfunction {
 						for (var p = 0; p < data.length; ++p) {
 							var returning = data[p];
 							vars[key] = returning;
-							console.log(data, p, returning, vars);
+							logToConsole(data, p, returning, vars);
 							if (vars !== undefined) {
 								var entries = Object.entries(vars);
 								for (var i = 0; i < entries.length; ++i) {
@@ -800,11 +798,11 @@ class mcfunction {
 			function contentInside(start, end, callback) {
 				var arr = temp.split(start);
 				var returnChunk = arr.shift();
-				console.log("A", arr);
+				logToConsole("A", arr);
 
 				for (var i = 0; i < arr.length; ++i) {
 					var chunk = arr[i];
-					console.log(chunk);
+					logToConsole(chunk);
 					var chunkEnd = chunk.split(end);
 					var content = chunkEnd[0];
 					var chunkTail = chunkEnd[1];
@@ -814,7 +812,7 @@ class mcfunction {
 						content: content,
 						tail: chunkTail
 					}
-					console.log("CHUNKS", c);
+					logToConsole("CHUNKS", c);
 
 					var callbackReturned = callback(c);
 
@@ -844,7 +842,7 @@ class mcfunction {
 					input.shift();
 				}
 
-				console.log(input);
+				logToConsole(input);
 
 				return input;
 			}
@@ -915,7 +913,7 @@ class mcfunction {
 
 					// Splits the line at every operation
 					var broken = line.split("$(");
-					console.log(broken);
+					logToConsole(broken);
 					if (broken.length > 1) {
 						let inFront = broken.shift();
 						temp += inFront;
@@ -924,7 +922,7 @@ class mcfunction {
 							let ent = broken[p];
 							ent = ent.split(")");
 							Object.assign(rtrn, ent);
-							console.log("P", {
+							logToConsole("P", {
 								line: line,
 								inFront: inFront,
 								broken: broken,
@@ -958,7 +956,7 @@ class mcfunction {
 
 					// Splits the line at every operation
 					var broken = line.split("$[");
-					console.log(broken);
+					logToConsole(broken);
 					if (broken.length > 1) {
 						let inFront = broken.shift();
 						temp += inFront;
@@ -967,7 +965,7 @@ class mcfunction {
 							let ent = broken[p];
 							ent = ent.split("]");
 							Object.assign(rtrn, ent);
-							console.log("P", {
+							logToConsole("P", {
 								line: line,
 								inFront: inFront,
 								broken: broken,
@@ -1008,13 +1006,13 @@ class mcfunction {
 						let y = broken.length > 0 ? "function" : "";
 						var path = x[1] + y + broken.join("function");
 
-						console.log(path, broken);
+						logToConsole(path, broken);
 
 						// creates a path and if the path is not '' it runs it
 						if (!path.includes("\\.mcfunction")) {
 							let p = [];
 							p.push(path + ".mcfunction");
-							console.log(p, vueApp.currentPrj.workspaceDir + path + ".mcfunction");
+							logToConsole(p, workspaceDir + path + ".mcfunction");
 							_r.use(p);
 						}
 						// readFileAndRender(path + ".mcfunction");
@@ -1024,14 +1022,14 @@ class mcfunction {
 				temp += line + "\n";
 			}
 
-			console.log(preLine);
+			logToConsole(preLine);
 			let l = temp.split("\n");
 			let tempPreline = "";
-			console.log(l);
+			logToConsole(l);
 
 			if (preLine.length > 0) {
 				for (var i = 0; i < l.length; ++i) {
-					console.log(l[i], );
+					logToConsole(l[i], );
 					let c = l[i].charCodeAt(0);
 					if (l[i] !== "" && l[i] !== " " && c !== 13) {
 						tempPreline += preLine.join(" ") + " " + l[i] + "\n";
@@ -1043,7 +1041,7 @@ class mcfunction {
 			evaluateVars();
 
 
-			console.log(temp.split("@#call@#").join("function"));
+			logToConsole(temp.split("@#call@#").join("function"));
 			temp = temp.split("@#call@#").join("function");
 
 			// adds the rendered line to the overal code
@@ -1051,9 +1049,9 @@ class mcfunction {
 		}
 
 		function render(content, vars) {
-			console.log(content);
+			logToConsole(content);
 			let i = renderAndReturn(content, vars);
-			console.log(i);
+			logToConsole(i);
 			rtrn += i;
 		}
 
@@ -1111,45 +1109,45 @@ class mcfunction {
 
 		function exportContent(content) {
 			if (internalDev === true) {
-				console.log(content);
+				logToConsole(content);
 				completeFile();
 			} else {
-				let url = vueApp.currentPrj.exportDir + internalWorkingFile;
+				let url = exportDir + internalWorkingFile;
 				url = url.split("%20").join(" ");
 				let chars = [];
 				for (var l = 0; l < url.length; ++l) {
 					chars.push(url.charCodeAt(l));
 				}
 				url = buildStringFromCharcode(chars, {13: ""});
-				console.log(url, chars.join("."));
+				logToConsole(url, chars.join("."));
 				let dir = url;
 				let p = dir.split("/");
 				p.pop();
 				let i = p.join("/") + "/";
-				console.log(i);
+				logToConsole(i);
 
 				var arr = content.split("\n");
 				content = "";
 				var arrTemp = [];
 				for (var l = 0; l < arr.length; ++l) {
 					var line = arr[l];
-					console.log(line);
+					logToConsole(line);
 					if (line !== "") {
 						arrTemp.push(line);
 					}
 				}
 
-				console.log(arr);
+				logToConsole(arr);
 
 				content = arrTemp.join("\n");
 
-				console.log(content, content.split("\n"));
+				logToConsole(content, content.split("\n"));
 				fs.mkdir(i, function() {
 					fs.writeFile(url, content, function(err) {
 						if (err) {
-							console.log(err);
+							logToConsole(err);
 						} else {
-							console.log("saved");
+							logToConsole("saved");
 						}
 					});
 				});
@@ -1157,7 +1155,7 @@ class mcfunction {
 			}
 		}
 
-		console.log(rtrn);
+		logToConsole(rtrn);
 
 		// Used for diffientiating between .extend and directly using .render
 		if (extend === undefined || extend === false) {
@@ -1202,25 +1200,15 @@ class loottable {
 		function completeFile() {
 			if (internalExported === false) {
 				completedFiles += 1;
-				let percentage = (completedFiles / totalFiles) * 100;
-				vueApp.compilerMessage = `Rendered ${completedFiles} out of ${totalFiles} files`;
-				console.log(completedFiles, totalFiles, percentage)
-				$(".loader .bar .progress").css("width", percentage + "%");
-				percentage = percentage > 100 ? 100 : percentage;
-				if (percentage === 100) {
-					vueApp.show = {
-						build: true,
-						projects: true,
-						add: false
-					}
-					$("#topTitle").text("Done!");
 
-					setTimeout(function() {
-						$(".loader .bar").removeClass("active");
-						$(".loader .bar .progress").css("width", "0%");
-						$(".compilerMessage").addClass("show");
-					}, 3000);
-				}
+				let percentage = (completedFiles / totalFiles) * 100;
+				if (percentage > 100) {percentage = 100}
+
+				callback({
+					completedFiles: completedFiles,
+					totalFiles: totalFiles,
+					percentage: percentage
+				});
 			}
 		}
 
@@ -1232,16 +1220,16 @@ class loottable {
 			for (var p = 0; p < entries.length; ++p) {
 				var entry = entries[p];
 				entry.weight = entry.weight * lastWeight;
-				console.log(entry);
+				logToConsole(entry);
 				if (entry.type === "collection") {
 					// var lastWeight = entry.weight;
 					// var totalWeight = 0;
 					// for (var p = 0; p < entry["entries"].length; ++p) {
 					// 	totalWeight += entry["entries"][p];
 					// }
-					// console.log(totalWeight);
+					// logToConsole(totalWeight);
 					lastCalculatedWeight = (entry.weight / totalWeight) * lastCalculatedWeight;
-					console.log({
+					logToConsole({
 						entry: entry,
 						totalWeight: totalWeight,
 						lastCalculatedWeight: lastCalculatedWeight,
@@ -1254,7 +1242,7 @@ class loottable {
 					// 	w = entries.length;
 					// }
 					// entry.weight *= 10000;
-					console.log({
+					logToConsole({
 						entry: entry,
 						totalWeight: totalWeight,
 						lastCalculatedWeight: lastCalculatedWeight,
@@ -1266,7 +1254,7 @@ class loottable {
 					}
 					entry.weight *= 10000;
 					var i = String(entry.weight);
-					console.log(entry.weight, i, i.split("."), i.split(".")[0], )
+					logToConsole(entry.weight, i, i.split("."), i.split(".")[0], )
 					entry.weight = Number(i.split(".")[0]);
 					returningEntries.push(entry);
 				}
@@ -1284,45 +1272,45 @@ class loottable {
 
 		function exportContent(content) {
 			if (internalDev === true) {
-				console.log(content);
+				logToConsole(content);
 				completeFile();
 			} else {
-				let url = vueApp.currentPrj.exportDir + internalWorkingFile;
+				let url = exportDir + internalWorkingFile;
 				url = url.split("%20").join(" ");
 				let chars = [];
 				for (var l = 0; l < url.length; ++l) {
 					chars.push(url.charCodeAt(l));
 				}
 				url = buildStringFromCharcode(chars, {13: ""});
-				console.log(url, chars.join("."));
+				logToConsole(url, chars.join("."));
 				let dir = url;
 				let p = dir.split("/");
 				p.pop();
 				let i = p.join("/") + "/";
-				console.log(i);
+				logToConsole(i);
 
 				var arr = content.split("\n");
 				content = "";
 				var arrTemp = [];
 				for (var l = 0; l < arr.length; ++l) {
 					var line = arr[l];
-					console.log(line);
+					logToConsole(line);
 					if (line !== "") {
 						arrTemp.push(line);
 					}
 				}
 
-				console.log(arr);
+				logToConsole(arr);
 
 				content = arrTemp.join("\n");
 
-				console.log(content, content.split("\n"));
+				logToConsole(content, content.split("\n"));
 				fs.mkdir(i, function() {
 					fs.writeFile(url, content, function(err) {
 						if (err) {
-							console.log(err);
+							logToConsole(err);
 						} else {
-							console.log("saved");
+							logToConsole("saved");
 						}
 					});
 				});
@@ -1336,6 +1324,30 @@ class loottable {
 }
 
 // defines some shorthands
-const mcf = mcfunction;
-const lt = loottable;
-const _r = renderer;
+var mcf = mcfunction;
+var lt = loottable;
+var _r = renderer;
+
+module.exports = {
+	mcf: mcf,
+	mcfunction: mcfunction,
+	lt: lt,
+	loottable: loottable,
+	renderer: renderer,
+	_r: _r,
+	version: compilerVersion,
+	compile: function(options, c) {
+
+		completedFiles = 0;
+		totalFiles = 0;
+
+		callback = c;
+
+		workspaceDir = options.workspaceDir;
+		exportDir = options.exportDir;
+
+		if (options.logging) {logging = true} else {logging = false}
+
+		_r.use(["index.js"]);
+	}
+}
