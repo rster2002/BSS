@@ -24,6 +24,7 @@
 		"fs": "0.0.1-security",
 		"jquery": "^3.3.1",
 		"lodash": "^4.17.11",
-		"require": "^2.4.20"
+		"require": "^2.4.20",
+		"uglify-js": ">=2.6.0"
 	}
 }
