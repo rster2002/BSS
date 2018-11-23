@@ -24,10 +24,10 @@ THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 const fs = require("fs");
+const _ = require("lodash");
 
-var compilerVersion = "1.0.0";
+var compilerVersion = "1.0.1";
 var totalFiles;
-var _ = require("lodash");
 var workspaceDir;
 var exportDir;
 var totalFiles;
@@ -56,23 +56,23 @@ var traceToConsole = function() {
 
 // replaces all matches with a replacement
 function replaceAll(input, replace, replaced) {
-	var rtrn = "";
+	var re = "";
 	var r = input.split(replace);
 	for (var i = 0; i < r.length; ++i) {
 		if (i !== 0) {
 			let p = replaced;
-			rtrn += p;
+			re += p;
 		}
 
 		if (input[i] !== "") {
-			rtrn += r[i];
+			re += r[i];
 		}
 	}
 
-	if (rtrn === "") {
-		rtrn = input;
+	if (re === "") {
+		re = input;
 	}
-	return rtrn;
+	return re;
 }
 
 function buildStringFromCharcode(arr, replace) {
@@ -228,12 +228,13 @@ class mcfunction {
 		var internalDev = this._dev;
 		var internalWorkingFile = this._workingFile;
 		var internalExported = this._exported;
-		var rtrn;
+		var rtrn = "";
 		var dedicatedTo = "@s";
 		var vars = {}, scoreboards = {};
 		var renderFunctions = [];
 		var preLine = [];
 		var rtrn, runContent, staticRunContent;
+		var postPend = [];
 		if (extend) {
 			rtrn = this._output;
 		} else {
@@ -264,15 +265,53 @@ class mcfunction {
 			if (renderer.scoreboards[scoreboard] === undefined) {
 				logToConsole("hellWOrld")
 				renderer.scoreboards[scoreboard] = scoreboard;
-				let c = `scoreboard objectives add ${scoreboard} ${mode}`;
+				var c = `scoreboard objectives add ${scoreboard} ${mode}`;
 				if (renderer.setupFileC !== undefined) {
 					let f = renderer.setupFileRef;
 					f.extend({content: c});
 				} else {
-					render(c, vars);
+					console.log("HELLO?" + c);
+					render(c);
 				}
 			}
 		}
+
+
+		function scoreboardOperations(scoreboard, operation, value) {
+			if (operation !== "" && operation !== undefined) {
+				logToConsole("d", isNumber(value));
+
+				if (isNumber(value)) {
+
+					// if the value is a static number
+					if (operation === "=") {
+						return `scoreboard players set ${dedicatedTo} ${scoreboard} ${value}`
+					} else if (operation === "+=") {
+						return `scoreboard players add ${dedicatedTo} ${scoreboard} ${value}`;
+					} else if (operation === "-=") {
+						return `scoreboard players remove ${dedicatedTo} ${scoreboard} ${value}`;
+					}
+				} else {
+					if (value === "time.daytime") {
+						return `execute store result score ${dedicatedTo} ${scoreboard} run time query daytime`;
+					} else if (value === "time.day") {
+						return `execute store result score ${dedicatedTo} ${scoreboard} run time query day`;
+					} else if (value === "time.gametime") {
+						return `execute store result score ${dedicatedTo} ${scoreboard} run time query gametime`;
+					} else {
+						if (operation === "=") {
+							return `scoreboard players operation ${dedicatedTo} ${scoreboard} = ${dedicatedTo} ${value}`
+						} else if (operation === "+=") {
+							return `scoreboard players operation ${dedicatedTo} ${scoreboard} += ${dedicatedTo} ${value}`;
+						} else if (operation === "-=") {
+							return `scoreboard players operation ${dedicatedTo} ${scoreboard} -= ${dedicatedTo} ${value}`;
+						}
+					}
+				}
+			}
+		}
+
+
 
 		// shortend text commands (used {{ }}) are defined here
 		var shortendCommands = {
@@ -291,37 +330,58 @@ class mcfunction {
 						defineScoreboard(scoreboard);
 					}
 
-					if (operation !== "" && operation !== undefined) {
-						logToConsole("d", isNumber(value));
+					return scoreboardOperations(scoreboard, operation, value);
+				}
+			},
+			let(words) {
+				var scoreboard = words[1];
+				var operation = words[2];
+				var value = words[3];
+				logToConsole("HELLOW", words, scoreboards, scoreboard, operation, value)
 
-						if (isNumber(value)) {
+				if (scoreboard !== undefined) {
 
-							// if the value is a static number
-							if (operation === "=") {
-								return `scoreboard players set ${dedicatedTo} ${scoreboard} ${value}`
-							} else if (operation === "+=") {
-								return `scoreboard players add ${dedicatedTo} ${scoreboard} ${value}`;
-							} else if (operation === "-=") {
-								return `scoreboard players remove ${dedicatedTo} ${scoreboard} ${value}`;
-							}
-						} else {
-							if (value === "time.daytime") {
-								return `execute store result score ${dedicatedTo} ${scoreboard} run time query daytime`;
-							} else if (value === "time.day") {
-								return `execute store result score ${dedicatedTo} ${scoreboard} run time query day`;
-							} else if (value === "time.gametime") {
-								return `execute store result score ${dedicatedTo} ${scoreboard} run time query gametime`;
+					function localDefine(scoreboard, mode) {
+						if (mode === undefined) {
+							mode = "dummy";
+						}
+
+
+						if (renderer.scoreboards[scoreboard] === undefined) {
+							logToConsole("hellWOrld")
+							renderer.scoreboards[scoreboard] = scoreboard;
+							let c = `scoreboard objectives add ${scoreboard} ${mode}`;
+							if (renderer.setupFileC !== undefined) {
+								let f = renderer.setupFileRef;
+								f.extend({content: c});
 							} else {
-								if (operation === "=") {
-									return `scoreboard players operation ${dedicatedTo} ${scoreboard} = ${dedicatedTo} ${value}`
-								} else if (operation === "+=") {
-									return `scoreboard players operation ${dedicatedTo} ${scoreboard} += ${dedicatedTo} ${value}`;
-								} else if (operation === "-=") {
-									return `scoreboard players operation ${dedicatedTo} ${scoreboard} -= ${dedicatedTo} ${value}`;
-								}
+								console.log("RENDERING SCOREBOARD")
+								render(c, vars);
 							}
 						}
+
+						postPend.push(`scoreboard objectives remove ${scoreboard}`);
 					}
+
+					function idFromString(line) {
+						var arr = line.split("");
+						var rid = 0;
+						for (var i = 0; i < arr.length; ++i) {
+							rid += arr[i].charCodeAt(0);
+						}
+						return rid;
+					}
+
+					let computedScoreboard = "let" + idFromString(scoreboard);
+
+					if (operation === "as") {
+						logToConsole("OPERATION AS");
+						localDefine(computedScoreboard, value);
+					} else {
+						localDefine(computedScoreboard);
+					}
+
+					return scoreboardOperations(computedScoreboard, operation, value);
 				}
 			},
 			set(words) {
@@ -356,7 +416,7 @@ class mcfunction {
 						let i = operator + "=";
 						if (isNumber(value)) {
 							defineScoreboard(`n${value}`);
-							render(`scoreboard players set ${dedicatedTo} n${value} ${value}`)
+							render(`scoreboard players set ${dedicatedTo} n${value} ${value}`);
 							return `scoreboard players operation ${dedicatedTo} ${scoreboard} ${i} ${dedicatedTo} n${value}`;
 						}
 					}
@@ -673,7 +733,7 @@ class mcfunction {
 							chunk: chunk,
 							minValue: minValue,
 							maxValue: maxValue
-						})
+						});
 					}
 					logToConsole({
 						totalLines: totalLines,
@@ -789,11 +849,29 @@ class mcfunction {
 			temp = "";
 			for (var i = 0; i < arr.length; ++i) {
 				var line = arr[i]
-				if (!line.includes("#")) {
+				if (!line[0] !== "#") {
 					rtrnArr.push(line);
 				}
 			}
 			temp = rtrnArr.join("\n");
+
+
+			// Wraps on-line shortend commands into {{  }}
+			var arr = temp.split("\n");
+			var rtrnArr = [];
+			temp = "";
+			for (var i = 0; i < arr.length; ++i) {
+				var line = arr[i]
+				var words = line.split(" ");
+
+				if (shortendCommands[words[0]] !== undefined) {
+					rtrnArr.push(`{{ ${line} }}`);
+				} else {
+					rtrnArr.push(line);
+				}
+			}
+			temp = rtrnArr.join("\n");
+
 
 			function contentInside(start, end, callback) {
 				var arr = temp.split(start);
@@ -1045,13 +1123,14 @@ class mcfunction {
 			temp = temp.split("@#call@#").join("function");
 
 			// adds the rendered line to the overal code
+			console.log("RTRN", rtrn, temp);
 			return temp;
 		}
 
 		function render(content, vars) {
-			logToConsole(content);
+			traceToConsole(content);
 			let i = renderAndReturn(content, vars);
-			logToConsole(i);
+			traceToConsole(i);
 			rtrn += i;
 		}
 
@@ -1108,6 +1187,11 @@ class mcfunction {
 		}
 
 		function exportContent(content) {
+
+			if (postPend.length > 0) {
+				content = content + "\n" + postPend.join("\n");
+			}
+
 			if (internalDev === true) {
 				logToConsole(content);
 				completeFile();
@@ -1147,7 +1231,7 @@ class mcfunction {
 						if (err) {
 							logToConsole(err);
 						} else {
-							logToConsole("saved");
+							logToConsole("saved to path: " + url);
 						}
 					});
 				});
@@ -1155,7 +1239,7 @@ class mcfunction {
 			}
 		}
 
-		logToConsole(rtrn);
+		traceToConsole(rtrn);
 
 		// Used for diffientiating between .extend and directly using .render
 		if (extend === undefined || extend === false) {
@@ -1342,6 +1426,8 @@ module.exports = {
 		totalFiles = 0;
 
 		callback = c;
+
+		renderer = _.cloneDeep(_reset);
 
 		workspaceDir = options.workspaceDir;
 		exportDir = options.exportDir;

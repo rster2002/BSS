@@ -23,27 +23,22 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-const filewatcher = require('chokidar');
+const chokidar = require('chokidar');
 
-function StartWatcher(path, fn) {
-      var chokidar = require("chokidar");
+function startWatcher(path, fn) {
 
-      watcher = chokidar.watch(path, {
-          persistent: true
-      });
+	console.log("WATCHER STARTED");
 
-	  //           ignored: /[\/\\]\./,
+	watcher = chokidar.watch(path, {ignored: /^\./, persistent: true});
 
-      function onWatcherReady(){
-          console.info('From here can you check for real changes, the initial scan has been completed.');
-      }
+	function evalEvent(event) {
+		console.log(event, path)
+		fn(event);
+	}
 
-      // Declare the listeners of the watcher
-	  watcher
-		  .on('ready', onWatcherReady)
-		  .on('raw', function(event, path, details) {
-			  // This event should be triggered everytime something happens.
-			  console.log('Raw event info:', event, path, details);
-			  // fn();
-		  });
+	watcher
+		.on("add", path => {evalEvent("add", path)})
+		.on("change", path => {evalEvent("change", path)})
+		.on("unlink", path => {evalEvent("unlink", path)})
+		.on("error", path => {throw path})
 }

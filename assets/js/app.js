@@ -168,6 +168,10 @@ vueApp = new Vue({
 			}
 			$('.projects').hide();
 			$('.loader').show();
+
+			startWatcher(vueApp.currentPrj.workspaceDir, function(event) {
+				compile();
+			});
 		},
 		openPrjs() {
 			// filewatcher.close();
@@ -179,6 +183,7 @@ vueApp = new Vue({
 			$("#topTitle").text("BlueStone Script");
 			$('.projects').show();
 			$('.loader').hide();
+			watcher.close();
 		},
 		build() {
 			compile();
@@ -240,6 +245,7 @@ window.addEventListener('error', function(e) {
 		show: true
 	};
 	vueApp.lastError = true;
+	currentCompiling = false;
 });
 
 function thr(err) {
@@ -254,42 +260,50 @@ if (load("prjById") === null) {
 	store("prjById", {});
 }
 
+var currentCompiling = false;
 
 function compile() {
-	vueApp.lastError = false;
-	$(".loader .bar .progress").css("width", "5%");
-	$(".loader .bar").addClass("active");
-	$(".compilerMessage").removeClass("show");
-	$("#topTitle").text("Rendering...");
-	vueApp.show = {
-		build: false,
-		projects: false,
-		add: false
-	}
+	if (currentCompiling === false) {
 
-	var prj = Object.assign({}, vueApp.currentPrj);
-	prj.logging = isDev;
+		currentCompiling = true;
 
-	bss.compile(prj, function(c) {
-		$(".loader .bar .progress").css("width", c.percentage + "%");
-
-		vueApp.compilerMessage = `Rendered ${c.completedFiles} out of ${c.totalFiles} files`
-
-		if (c.percentage === 100) {
-			vueApp.show = {
-				build: true,
-				projects: true,
-				add: false
-			}
-			$("#topTitle").text("Done!");
-
-			setTimeout(function() {
-				$(".loader .bar").removeClass("active");
-				$(".loader .bar .progress").css("width", "0%");
-				$(".compilerMessage").addClass("show");
-			}, 3000);
+		vueApp.lastError = false;
+		$(".loader .bar .progress").css("width", "5%");
+		$(".loader .bar").addClass("active");
+		$(".compilerMessage").removeClass("show");
+		$("#topTitle").text("Rendering...");
+		vueApp.show = {
+			build: false,
+			projects: false,
+			add: false
 		}
-	})
+
+		var prj = Object.assign({}, vueApp.currentPrj);
+		prj.logging = isDev;
+
+		bss.compile(prj, function(c) {
+			$(".loader .bar .progress").css("width", c.percentage + "%");
+
+			vueApp.compilerMessage = `Rendered ${c.completedFiles} out of ${c.totalFiles} files`
+
+			if (c.percentage === 100) {
+				vueApp.show = {
+					build: true,
+					projects: true,
+					add: false
+				}
+				$("#topTitle").text("Done!");
+
+				setTimeout(function() {
+					$(".loader .bar").removeClass("active");
+					$(".loader .bar .progress").css("width", "0%");
+					$(".compilerMessage").addClass("show");
+				}, 3000);
+
+				currentCompiling = false;
+			}
+		});
+	}
 }
 
 
