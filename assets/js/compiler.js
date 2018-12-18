@@ -26,7 +26,7 @@ THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 const fs = require("fs");
 const _ = require("lodash");
 
-var compilerVersion = "1.0.1";
+var compilerVersion = "1.0.3";
 var totalFiles;
 var workspaceDir;
 var exportDir;
@@ -43,6 +43,7 @@ var logToConsole = function() {
 		}
 	}
 }
+
 var traceToConsole = function() {
 	if (logging) {
 		var args = arguments;
@@ -142,7 +143,18 @@ _reset = {
 		renderer.setupFileC = f;
 		renderer.setupFileRef = new mcf({file: renderer.setupFileC});
 	},
-	scoreboards: {}
+	scoreboards: {},
+	template(name, a) {
+		if (renderer.templates[name] === undefined) {
+			let b = Object.assign({
+				props: []
+			}, a)
+			renderer.templates[name] = b;
+		} else {
+			throw new Error(`Template ${name} has already been declared`);
+		}
+	},
+	templates: {}
 }
 
 renderer = _.cloneDeep(_reset);
@@ -600,7 +612,7 @@ class mcfunction {
 				}
 			},
 			every(words, vars, context) {
-				words.pop();
+				words.shift();
 				logToConsole("W", words);
 
 				// gets the required values
@@ -667,6 +679,103 @@ class mcfunction {
 				var time = Number(interval) * timeScaler;
 
 				return `scoreboard players add ${dedicatedTo} ${scoreboard} 1\nexecute as ${dedicatedTo}[scores={${scoreboard}=${time}..}]${cont}${context.tail}\nexecute as ${dedicatedTo}[scores={${scoreboard}=${time}..}] run scoreboard players set @s ${scoreboard} 0`
+			},
+			template(words, vars, context) {
+
+				words.shift();
+
+				var template = words[0];
+
+				if (renderer.templates[template] !== undefined) {
+
+					var templateObj = renderer.templates[template];
+
+					if (typeof templateObj.props === "object") {
+
+						var props = templateObj.props;
+						var content = templateObj.content;
+						var localVars = {};
+
+						words.shift();
+						var args = words.join(" ");
+						args = args.split(",");
+						console.log(args);
+						var defaults = {};
+
+						if (Array.isArray(props) === false) {
+							localVars = templateObj.props;
+							let entries = Object.entries(props);
+							props = [];
+
+							console.log(entries, props);
+
+							entries.forEach(prop => {
+								if (typeof prop[1] === "string" || typeof prop[1] === "number") {
+									defaults[prop[0]] = prop[1];
+								} else {
+									throw new Error(`Default value for prop: ${prop} was not a valid datatype`)
+								}
+
+							});
+						}
+
+						props.forEach(prop => {
+							args.forEach(arg => {
+								if (arg.includes(prop + "=")) {
+									arg = arg.replace(prop + "=", "");
+									if (arg[arg.length - 1] === " ") {
+										arg = arg.split(" ")
+										arg.pop()
+										arg = arg.join(" ");
+									}
+
+									if (arg[0] === " ") {
+										arg = arg.split(" ");
+										arg.shift()
+										arg = arg.join();
+									}
+
+									if (arg[0] === "\"") {
+										arg = arg.split("\"")
+										arg.shift();
+										arg.pop();
+										arg = arg[0];
+									}
+
+									localVars[prop] = arg;
+
+									if (typeof content === "string") {
+										content = replaceAll(content, "$" + prop, arg);
+									}
+								}
+							});
+						});
+
+						if (typeof content === "function") {
+							console.log(localVars);
+							content = String(content(localVars));
+						}
+
+						let entries = Object.entries(defaults);
+
+						console.log(defaults, entries);
+
+						console.log(content);
+
+						entries.forEach(prop => {
+							content = replaceAll(content, "$" + prop[0], prop[1]);
+						});
+
+						return content;
+
+					} else {
+						return templateObj.content;
+					}
+
+				} else {
+					throw new Error("Template not defined");
+				}
+
 			}
 		}
 
@@ -870,7 +979,24 @@ class mcfunction {
 					rtrnArr.push(line);
 				}
 			}
+			console.log(rtrnArr);
 			temp = rtrnArr.join("\n");
+			console.log(temp);
+
+			// // Deletes #
+			// var arr = temp.split("\n");
+			// var rtrnArr = [];
+			// temp = "";
+			// for (var i = 0; i < arr.length; ++i) {
+			// 	var line = arr[i];
+			// 	console.log(line, line[0]);
+			// 	if (line[0] !== "#") {
+			// 		rtrnArr.push(line);
+			// 	}
+			// }
+			// console.log(rtrnArr);
+			// temp = rtrnArr.join("\n");
+			// console.log(temp);
 
 
 			function contentInside(start, end, callback) {
@@ -946,14 +1072,27 @@ class mcfunction {
 				return `@#call@# ${vueApp.currentPrj.namespace}:bss_generated/${idFromString(chunk.content)}`
 			});
 
-
 			// evaluates commands
 			contentInside("{{", "}}", function(chunk) {
-				var broken = isolate(chunk.content.split(" "));
+				var broken = replaceAll(isolate(chunk.content), "\n", " ");
+				broken = broken.split(" ");
+
+				let b = [];
+				broken.forEach(a => {
+					if (a !== "") {
+						b.push(a);
+					}
+				});
+
+				broken = b;
+
+				console.log(broken, b, broken[0], shortendCommands[broken[0]]);
 
 				// checks if the keyword can be found
 				var commandIndexed = shortendCommands[broken[0]];
 				if (commandIndexed !== undefined) {
+
+
 					var returnedValue = commandIndexed(broken, vars, chunk);
 					if (returnedValue !== undefined && returnedValue !== false) {
 						return returnedValue;
@@ -961,6 +1100,18 @@ class mcfunction {
 						return "";
 					}
 				}
+			});
+
+			contentInside("<script>", "</script>", function(chunk) {
+				var internalFn;
+				eval("internalFn = function() {" + chunk.content + "}");
+
+				var returned = internalFn(vars);
+
+				if (returned) {
+					return returned;
+				}
+
 			});
 
 
@@ -1191,6 +1342,23 @@ class mcfunction {
 			if (postPend.length > 0) {
 				content = content + "\n" + postPend.join("\n");
 			}
+
+			content = replaceAll(content, "\t", "");
+
+			let c = [];
+			content = content.split("\n");
+
+			console.log(content);
+
+			content.forEach(line => {
+				console.log(line, line === "", line === " ", line === "  ");
+				if (line !== "" && line !== " ") {
+					c.push(line);
+				}
+			});
+
+			content = c.join("\n");
+
 
 			if (internalDev === true) {
 				logToConsole(content);
