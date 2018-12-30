@@ -30,3 +30,5 @@ Let's take a look at another example:
 ```
 
 Here we check if a player has a clock selected and then display the time in ticks. Pretty simple, but if you were to create this without BSS it would quickly get bigger and more complicated. Here we are using `{{ var }}` which is actually just the `scoreboard` command, but `{{ var }}` doesn't require you to first create the scoreboard by hand. It does that for you. And, if you want, it can put those `scoreboard objectives add` commands into a specific file like `setup.mcfunction` for example.
+
+If you are interested in learning more, check out the wiki on github. 
