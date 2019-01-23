@@ -2,7 +2,7 @@
 
 MIT Licence
 
-Copyright 2018 Bjørn Reemer
+Copyright 2018-2019 Bjørn Reemer
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),

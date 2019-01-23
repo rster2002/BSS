@@ -2,7 +2,7 @@
 
 MIT Licence
 
-Copyright 2018 Bjørn Reemer
+Copyright 2018-2019 Bjørn Reemer
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -25,8 +25,10 @@ THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 const fs = require("fs");
 const _ = require("lodash");
+const rimraf = require("rimraf");
+const shelljs = require("shelljs");
 
-var compilerVersion = "1.0.3";
+var compilerVersion = "1.0.4dev";
 var totalFiles;
 var workspaceDir;
 var exportDir;
@@ -54,6 +56,90 @@ var traceToConsole = function() {
 	}
 }
 
+var bssModules = {
+	random: {
+		files: [
+			{
+				name: "nextrandom.mcfunction",
+				content: `{{ var bss_rtemp = bss_ra }}
+				{{ operation bss_rtemp * bss_rseed }}
+				{{ operation bss_rtemp + bss_rc }}
+				{{ operation bss_rtemp % bss_rm }}
+				{{ var bss_rseed = bss_rtemp }}
+				{{ var bss_rrandomvalue = bss_rtemp }}
+				{{ operation bss_rrandomvalue % bss_rmax }}
+				{{ operation bss_rrandomvalue + bss_rmin }}`
+			},
+			{
+				name: "player_init.mcfunction",
+				content: `{{ var bss_rseed }}
+				{{ var bss_rrandom }}
+				{{ var bss_rm = 134456 }}
+				{{ var bss_ra = 8121 }}
+				{{ var bss_rc = 28411 }}
+				{{ var bss_rtemp = 0 }}
+				{{ var bss_rvalue = 0 }}
+				{{ var bss_rmax = 0 }}
+				{{ var bss_rmin = 0 }}
+				{{ var bss_rrandomvalue = 0 }}
+				{{ var bss_rseeddefined = 0 }}
+
+				{{ if bss_rseeddefined = 0 => }} <<
+					execute store result score @s bss_rseed run data get entity @r Pos[0]
+					execute if score @s bss_rseed matches ..0 run {{ operation bss_rseed * -1 }}
+					{{ operation bss_rseed % m }}
+					{{ var bss_rrandom = bss_rseed }}
+					{{ var bss_rseeddefined = 1 }}
+				>>
+
+				tag @s add bss_rsetup`
+			}
+		],
+		setup: `execute as @s[tag=!bss_rsetup] run {{ call $_namespace:bss_modules/random/player_init }}`
+	}
+}
+
+var matchRecursive = function () {
+	var	formatParts = /^([\S\s]+?)\.\.\.([\S\s]+)/,
+		metaChar = /[-[\]{}()*+?.\\^$|,]/g,
+		escape = function (str) {
+			return str.replace(metaChar, "\\$&");
+		};
+
+	return function (str, format) {
+		var p = formatParts.exec(format);
+		if (!p) throw new Error("format must include start and end tokens separated by '...'");
+		if (p[1] == p[2]) throw new Error("start and end format tokens cannot be identical");
+
+		var	opener = p[1],
+			closer = p[2],
+			/* Use an optimized regex when opener and closer are one character each */
+			iterator = new RegExp(format.length == 5 ? "["+escape(opener+closer)+"]" : escape(opener)+"|"+escape(closer), "g"),
+			results = [],
+			openTokens, matchStartIndex, match;
+
+		do {
+			openTokens = 0;
+			while (match = iterator.exec(str)) {
+				if (match[0] == opener) {
+					if (!openTokens)
+						matchStartIndex = iterator.lastIndex;
+					openTokens++;
+				} else if (openTokens) {
+					openTokens--;
+					if (!openTokens)
+						results.push(str.slice(matchStartIndex, match.index));
+				}
+			}
+		} while (openTokens && (iterator.lastIndex = matchStartIndex));
+
+		return results;
+	};
+}();
+
+Array.prototype.last = function() {
+	return this[this.length - 1];
+}
 
 // replaces all matches with a replacement
 function replaceAll(input, replace, replaced) {
@@ -91,6 +177,9 @@ function buildStringFromCharcode(arr, replace) {
 }
 
 function readFileAndRender(file) {
+	console.log("TRACING")
+	traceToConsole(file);
+	console.log(file);
 	if (file !== undefined || !file.includes("\\.mcfunction")) {
 		var url = workspaceDir + file;
 		url = replaceAll(url, "%20", " ");
@@ -102,7 +191,7 @@ function readFileAndRender(file) {
 		logToConsole(url, chars.join("."));
 		fs.readFile(url, "utf8", (err, data) => {
 			if (err) {
-				logToConsole(data);
+				traceToConsole(file);
 				throw err;
 			}
 			let mc = new mcf({file: file});
@@ -114,6 +203,13 @@ function readFileAndRender(file) {
 }
 
 _reset = {
+	_data: {
+		mcf: {
+			search: {
+				path: ""
+			}
+		}
+	},
 	use(files) {
 		for (var i = 0; i < files.length; ++i) {
 			var file = files[i];
@@ -154,7 +250,32 @@ _reset = {
 			throw new Error(`Template ${name} has already been declared`);
 		}
 	},
-	templates: {}
+	templates: {},
+	mcf: {
+		search: {
+			path(template) {
+				renderer._data.mcf.search.path = template;
+			}
+		}
+	},
+	uninstallFile(file) {
+		renderer.uninstallFileC = file;
+		renderer.uninstallFileRef = new mcf({file: renderer.uninstallFileC});
+	}
+}
+
+var exact = [];
+
+function evalPath(p) {
+	if (p === undefined) {
+		return;
+	} else {
+		if (renderer._data.mcf.search.path !== "") {
+			return renderer._data.mcf.search.path(p);
+		} else {
+			return p;
+		}
+	}
 }
 
 renderer = _.cloneDeep(_reset);
@@ -253,6 +374,42 @@ class mcfunction {
 			rtrn = "";
 		}
 
+		function randomString(l) {
+			let characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+			var retn = "";
+			for (var i = 0; i < l; i++) {
+				var r = Math.floor(Math.random() * characters.length);
+				retn += characters[r];
+			}
+			return retn;
+		}
+
+		function genId() {
+			return randomString(32);
+		}
+
+		function useModule(module) {
+			let m = bssModules[module];
+			console.log("INSTALL MODULE", m);
+
+			if (m.setup !== undefined) {
+				let c = replaceAll(m.setup, "$_namespace", vueApp.currentPrj.namespace);
+				render(c);
+			}
+
+			m.files.forEach(file => {
+				let f = new mcf({file: evalPath("bss_modules/" + module + "/" + file.name)});
+
+				let c = replaceAll(file.content, "$_namespace", vueApp.currentPrj.namespace);
+
+				console.log(f, file);
+
+				f.render({
+					content: c
+				});
+			});
+		}
+
 		function completeFile() {
 			if (internalExported === false) {
 				completedFiles += 1;
@@ -285,6 +442,11 @@ class mcfunction {
 					console.log("HELLO?" + c);
 					render(c);
 				}
+
+				if (renderer.uninstallFileRef !== undefined) {
+					let f = renderer.uninstallFileRef;
+					f.extend({content: `scoreboard objectives remove ${scoreboard}`});
+				}
 			}
 		}
 
@@ -310,6 +472,21 @@ class mcfunction {
 						return `execute store result score ${dedicatedTo} ${scoreboard} run time query day`;
 					} else if (value === "time.gametime") {
 						return `execute store result score ${dedicatedTo} ${scoreboard} run time query gametime`;
+					} else if (value.includes("math.random(") && value.includes(")")) {
+						useModule("random");
+
+						let broken = value.split(",");
+						let min = broken[0];
+						min = Number(min.replace("math.random(", ""));
+
+						let max = broken[1];
+						max = Number(max.replace(")", ""));
+
+						return `scoreboard players set ${dedicatedTo} bss_rmin ${min}
+						scoreboard players set ${dedicatedTo} bss_rmax ${max + 1}
+						@#call@# ${vueApp.currentPrj.namespace}:bss_modules/random/nextrandom
+						scoreboard players operation ${dedicatedTo} ${scoreboard} = ${dedicatedTo} bss_rrandomvalue`
+
 					} else {
 						if (operation === "=") {
 							return `scoreboard players operation ${dedicatedTo} ${scoreboard} = ${dedicatedTo} ${value}`
@@ -317,6 +494,8 @@ class mcfunction {
 							return `scoreboard players operation ${dedicatedTo} ${scoreboard} += ${dedicatedTo} ${value}`;
 						} else if (operation === "-=") {
 							return `scoreboard players operation ${dedicatedTo} ${scoreboard} -= ${dedicatedTo} ${value}`;
+						} else if (operation === "%=") {
+							return `scoreboard players operation ${dedicatedTo} ${scoreboard} %= ${dedicatedTo} ${value}`;
 						}
 					}
 				}
@@ -343,6 +522,28 @@ class mcfunction {
 					}
 
 					return scoreboardOperations(scoreboard, operation, value);
+				}
+			},
+			"global": function(words) {
+
+				var scoreboard = words[1];
+				var operation = words[2];
+				var value = words[3];
+
+				if (scoreboard !== undefined && scoreboard !== "") {
+
+					if (operation === "as") {
+						defineScoreboard(scoreboard, value);
+					} else {
+						defineScoreboard(scoreboard);
+					}
+
+					let i = dedicatedTo;
+					dedicatedTo = "global";
+					let r = scoreboardOperations(scoreboard, operation, value);
+					dedicatedTo = i;
+					return r;
+
 				}
 			},
 			let(words) {
@@ -417,55 +618,86 @@ class mcfunction {
 			},
 			operation(words, vars) {
 
+				words.shift();
+
 				logToConsole(words);
 
-				function evaluateOperator(scoreboard, operator, value) {
-					if (operator === "+" || operator === "-") {
-						let i = operator + "=";
-						let p = ["var", scoreboard, i, value];
-						return shortendCommands.var(p);
-					} else if (operator === "/" || operator === "*") {
-						let i = operator + "=";
-						if (isNumber(value)) {
-							defineScoreboard(`n${value}`);
-							render(`scoreboard players set ${dedicatedTo} n${value} ${value}`);
-							return `scoreboard players operation ${dedicatedTo} ${scoreboard} ${i} ${dedicatedTo} n${value}`;
+				// [operation i + 10 / 2]
+				// i + 10
+				// i / 2
+
+				var score = words[0];
+				words.shift();
+				var rtrn = [];
+
+				for (var i = 0; i < words.length; ++i) {
+
+					var operator = words[i];
+					var value = words[i + 1];
+
+					console.log(i, operator, value, "HEYHIHELLO")
+
+					if (isNumber(value)) {
+
+						let o;
+						let mode;
+
+						if (operator === "+") {
+							o = "add";
+							mode = "simple";
+						} else if (operator === "-") {
+							o = "remove";
+							mode = "simple"
+						} else if (operator === "*") {
+							o = "*=";
+							mode = "complex";
+						} else if (operator === "/") {
+							o = "/=";
+							mode = "complex";
+						} else if (operator === "%") {
+							o = "%=";
+							mode = "complex";
 						}
+
+						if (mode === "simple") {
+
+							rtrn.push(`scoreboard players ${o} ${dedicatedTo} ${score} ${value}`);
+
+						} else if (mode === "complex") {
+
+							defineScoreboard("n" + value);
+
+							rtrn.push(`scoreboard players set ${dedicatedTo} n${value} ${value}`);
+							rtrn.push(`scoreboard players operation ${dedicatedTo} ${score} ${o} ${dedicatedTo} n${value}`);
+
+						}
+
+
+					} else if (!isNumber(value)) {
+
+						let o;
+
+						if (operator === "+") {
+							o = "add";
+						} else if (operator === "-") {
+							o = "remove";
+						} else if (operator === "*") {
+							o = "*=";
+						} else if (operator === "/") {
+							o = "/=";
+						} else if (operator === "%") {
+							o = "%=";
+						}
+
+						rtrn.push(`scoreboard players operation ${dedicatedTo} ${score} ${o} ${dedicatedTo} ${value}`)
+
 					}
+
+					++i;
+
 				}
 
-				// [operation i = 10]
-				var scoreboard = words[1];
-				var operator = words[2];
-				if (operator !== "=") {
-					words.shift();
-					if (words.length === 3) {
-						var value = words[2];
-						if (scoreboard !== undefined) {
-							defineScoreboard(scoreboard);
-
-							return evaluateOperator(scoreboard, operator, value);
-						}
-					} else if (words.length > 3) {
-						var scoreboard = words[0];
-						logToConsole(words);
-
-						defineScoreboard(scoreboard);
-
-						words.shift();
-
-						logToConsole(words);
-
-						var returning = "";
-						for (var i = 0; i < words.length; i += 2) {
-							var operator = words[i];
-							var value = words[i + 1];
-							returning += evaluateOperator(scoreboard, operator, value) + "\n";
-						}
-
-						return returning;
-					}
-				}
+				return "\n" + rtrn.join("\n") + "\n";
 			},
 			selector(words) {
 				if (words[1] !== undefined) {
@@ -550,15 +782,32 @@ class mcfunction {
 							var value2 = internalOperation[2];
 
 							// checks whether it should use simple or complex
-							if (isNumber(value2)) {
-								simpleOperations.push(evalOperatorSimple(value1, value2, operator));
+							console.log("GLOBAL", value1, value1.includes("global:"))
+							if (value1.includes("global:") === false) {
+								if (isNumber(value2)) {
+									simpleOperations.push(`as ${dedicatedTo}[scores={` + evalOperatorSimple(value1, value2, operator) + "}]");
+								} else {
+									complexOperations += " " + evalOperatorComplex(value1, value2, operator);
+								}
 							} else {
-								complexOperations += " " + evalOperatorComplex(value1, value2, operator);
+								let tempDedicatedTo = dedicatedTo;
+								dedicatedTo = "global";
+								value1 = value1.replace("global:", "");
+								if (isNumber(value2)) {
+									value3 = "n" + value2;
+									defineScoreboard(value3);
+									render(`scoreboard players set ${dedicatedTo} ${value3} ${value2}`)
+								} else {
+									value3 = value2;
+								}
+
+								complexOperations += " " + evalOperatorComplex(value1, value3, operator);
+								dedicatedTo = tempDedicatedTo;
 							}
 						}
 
 						// returnes the completed command
-						return `execute as ${dedicatedTo}[scores={${simpleOperations.join(",")}}]${complexOperations}${cont}`
+						return `execute ${simpleOperations.join(" ")}${complexOperations}${cont}`
 					} else if (operation.includes("||")) {
 
 						// splits the operation into smaller operations
@@ -603,10 +852,29 @@ class mcfunction {
 							isNub: isNumber(value2)
 						});
 
-						if (isNumber(value2)) {
-							return  `execute as ${dedicatedTo}[scores={${evalOperatorSimple(value1, value2, operator)}}]${cont}`
+						if (!value1.includes("global:")) {
+							if (isNumber(value2)) {
+								return  `execute as ${dedicatedTo}[scores={${evalOperatorSimple(value1, value2, operator)}}]${cont}`
+							} else {
+								return `execute as ${dedicatedTo} ${evalOperatorComplex(value1, value2, operator)}${cont}`
+							}
 						} else {
-							return `execute as ${dedicatedTo} ${evalOperatorComplex(value1, value2, operator)}${cont}`
+							let tempDedicatedTo = dedicatedTo;
+							dedicatedTo = "global";
+							value1 = value1.replace("global:", "");
+							let value3;
+							if (isNumber(value2)) {
+								value3 = "n" + value2;
+								defineScoreboard(value3);
+								render(`scoreboard players set ${dedicatedTo} ${value3} ${value2}`)
+							} else {
+								value3 = value2.replace("global:", "");
+							}
+
+							let r = `execute ${evalOperatorComplex(value1, value3, operator)}${cont}`
+							dedicatedTo = tempDedicatedTo;
+
+							return r;
 						}
 					}
 				}
@@ -616,7 +884,7 @@ class mcfunction {
 				logToConsole("W", words);
 
 				// gets the required values
-				var interval = words[1];
+				var interval = words[0];
 				logToConsole(interval);
 				var timeUnit = interval[interval.length - 1];
 				logToConsole(timeUnit);
@@ -630,6 +898,8 @@ class mcfunction {
 				if (isNumber(timeUnit)) {
 					thr("No time unit specified");
 				}
+
+				console.log(timeUnit);
 
 				// checks if it is an arrow function
 				logToConsole(words);
@@ -678,7 +948,7 @@ class mcfunction {
 				defineScoreboard(scoreboard);
 				var time = Number(interval) * timeScaler;
 
-				return `scoreboard players add ${dedicatedTo} ${scoreboard} 1\nexecute as ${dedicatedTo}[scores={${scoreboard}=${time}..}]${cont}${context.tail}\nexecute as ${dedicatedTo}[scores={${scoreboard}=${time}..}] run scoreboard players set @s ${scoreboard} 0`
+				return `scoreboard players add ${dedicatedTo} ${scoreboard} 1\nexecute as ${dedicatedTo}[scores={${scoreboard}=${time}..}]${cont}${context.tail}\nexecute as ${dedicatedTo}[scores={${scoreboard}=${time}..}] run scoreboard players set @s ${scoreboard} 0\n`
 			},
 			template(words, vars, context) {
 
@@ -776,6 +1046,65 @@ class mcfunction {
 					throw new Error("Template not defined");
 				}
 
+			},
+			as(words, vars, context) {
+				words.shift();
+
+				let cont;
+
+				if (words.last() === "@#arrow@#") {
+					cont = " run";
+					words.pop();
+				} else {
+					cont = "";
+				}
+
+				let healed = words.join(" ");
+				let selectors = healed.split(" && ");
+				let rtrn = [];
+
+				selectors.forEach(selector => {
+					rtrn.push(`execute as ${selector}${cont}${context.tail}`);
+				});
+
+				return rtrn.join("\n");
+
+			},
+			"@mined": function(words, vars, context) {
+				words.pop();
+
+				let cont;
+				let block = words[0];
+
+				if (words.last() === "@#arror@#") {
+					cont = " run";
+					words.pop();
+				} else {
+					cont = "";
+				}
+
+				if (block === "" || block === undefined) {
+
+				} else {
+					defineScoreboard(`m${block}`, `minecraft.mined:minecraft.${block}`);
+					return `execute as ${dedicatedTo} as @s[scores={m${block}=1..}]${cont}${context.tail}
+					execute as ${dedicatedTo} as @s[scores={m${block}=1..}] run scoreboard players set @s m${block} 0`;
+				}
+			},
+			"@damage": function(words, vars, context) {
+				words.pop();
+
+				let cont;
+				if (words.last() === "@#arror@#") {
+					cont = " run";
+					words.pop();
+				} else {
+					cont = "";
+				}
+
+				defineScoreboard(`bDamage`, `minecraft.custom:minecraft.damage_taken`);
+				return `execute as ${dedicatedTo} as @s[scores={bDamage=1..}]${cont}${context.tail}
+				execute as ${dedicatedTo} as @s[scores={bDamage=1..}] run scoreboard players set @s bDamage 0`
 			}
 		}
 
@@ -945,6 +1274,17 @@ class mcfunction {
 				}
 			}
 
+			contentInside("<script>", "</script>", function(chunk) {
+				var internalFn;
+				eval("internalFn = function() {" + chunk.content + "}");
+
+				var returned = internalFn(vars);
+
+				if (returned) {
+					return returned;
+				}
+
+			});
 
 			evaluateVars();
 
@@ -997,6 +1337,21 @@ class mcfunction {
 			// console.log(rtrnArr);
 			// temp = rtrnArr.join("\n");
 			// console.log(temp);
+
+			let t = matchRecursive(temp, "<x>...</x>");
+			console.log("EXACT", t, exact);
+
+			t.forEach(x => {
+				let id = genId();
+				exact.push({
+					id: id,
+					content: x
+				});
+				console.log(exact);
+
+				temp = temp.replace("<x>" + x + "</x>", id);
+				console.log(temp);
+			});
 
 
 			function contentInside(start, end, callback) {
@@ -1053,8 +1408,11 @@ class mcfunction {
 
 			temp = replaceAll(temp, "=>", "@#arrow@#");
 
-			// evaluates blocks
-			contentInside("<<", ">>", function(chunk) {
+			let blocks = matchRecursive(temp, "<<...>>")
+
+			console.log(temp, blocks);
+
+			blocks.forEach(block => {
 				function idFromString(line) {
 					var arr = line.split("");
 					var rid = 0;
@@ -1064,13 +1422,26 @@ class mcfunction {
 					return rid;
 				}
 
-				var chunkContentFile = new mcf({file: `bss_generated/${idFromString(chunk.content)}.mcfunction`});
+				let p = evalPath(`bss_generated/${idFromString(block)}.mcfunction`);
+
+				var chunkContentFile = new mcf({file: p});
+
 				chunkContentFile.render({
-					content: chunk.content
+					content: block
 				});
 
-				return `@#call@# ${vueApp.currentPrj.namespace}:bss_generated/${idFromString(chunk.content)}`
+				temp = replaceAll(temp, "<<" + block + ">>", `@#call@# ${vueApp.currentPrj.namespace}:bss_generated/${idFromString(block)}`)
+
 			});
+
+			// evaluates blocks
+			// contentInside("<<", ">>", function(chunk) {
+
+			//
+
+			//
+				// return `@#call@# ${vueApp.currentPrj.namespace}:bss_generated/${idFromString(chunk.content)}`
+			// });
 
 			// evaluates commands
 			contentInside("{{", "}}", function(chunk) {
@@ -1100,18 +1471,6 @@ class mcfunction {
 						return "";
 					}
 				}
-			});
-
-			contentInside("<script>", "</script>", function(chunk) {
-				var internalFn;
-				eval("internalFn = function() {" + chunk.content + "}");
-
-				var returned = internalFn(vars);
-
-				if (returned) {
-					return returned;
-				}
-
 			});
 
 
@@ -1235,7 +1594,14 @@ class mcfunction {
 						let y = broken.length > 0 ? "function" : "";
 						var path = x[1] + y + broken.join("function");
 
-						logToConsole(path, broken);
+						console.log(path, broken);
+
+						console.log(renderer._data.mcf.search.path, renderer._data.mcf.search.path("hey"))
+
+						if (renderer._data.mcf.search.path !== "") {
+							path = renderer._data.mcf.search.path(path);
+							console.log(path);
+						}
 
 						// creates a path and if the path is not '' it runs it
 						if (!path.includes("\\.mcfunction")) {
@@ -1272,6 +1638,14 @@ class mcfunction {
 
 			logToConsole(temp.split("@#call@#").join("function"));
 			temp = temp.split("@#call@#").join("function");
+
+			exact.forEach(x => {
+				console.log("aaaaaaaa", x, temp.includes(x.content));
+				temp = temp.replace(x.id, x.content);
+			});
+
+			temp = replaceAll(temp, "<x>", "");
+			temp = replaceAll(temp, "</x>", "");
 
 			// adds the rendered line to the overal code
 			console.log("RTRN", rtrn, temp);
@@ -1394,14 +1768,13 @@ class mcfunction {
 				content = arrTemp.join("\n");
 
 				logToConsole(content, content.split("\n"));
-				fs.mkdir(i, function() {
-					fs.writeFile(url, content, function(err) {
-						if (err) {
-							logToConsole(err);
-						} else {
-							logToConsole("saved to path: " + url);
-						}
-					});
+				shelljs.mkdir("-p", i);
+				fs.writeFile(url, content, function(err) {
+					if (err) {
+						logToConsole(err);
+					} else {
+						logToConsole("saved to path: " + url);
+					}
 				});
 				completeFile();
 			}
@@ -1590,18 +1963,52 @@ module.exports = {
 	version: compilerVersion,
 	compile: function(options, c) {
 
-		completedFiles = 0;
-		totalFiles = 0;
+		function a() {
+			completedFiles = 0;
+			totalFiles = 0;
 
-		callback = c;
+			callback = c;
 
-		renderer = _.cloneDeep(_reset);
+			renderer = _.cloneDeep(_reset);
 
-		workspaceDir = options.workspaceDir;
-		exportDir = options.exportDir;
+			workspaceDir = options.workspaceDir;
+			exportDir = options.exportDir;
 
-		if (options.logging) {logging = true} else {logging = false}
+			if (options.logging) {logging = true} else {logging = false}
 
-		_r.use(["index.js"]);
+			exact = [];
+
+			_r.use(["index.js"]);
+		}
+
+		if (options.exportDir !== undefined) {
+
+			if (options.exportDir[options.exportDir.length - 1] === "/") {
+				rimraf(options.exportDir + "/bss_generated", e => {
+					console.log(e);
+					a();
+				});
+			} else if (options.exportDir[options.exportDir.length - 1] === "\\") {
+				rimraf(options.exportDir + "\\bss_generated", e => {
+					console.log(e);
+					a();
+				});
+			} else {
+				if (options.exportDir.includes("/")) {
+					rimraf(options.exportDir + "/bss_generated", e => {
+						console.log(e);
+						a();
+					});
+				} else if (options.exportDir.includes("\\")) {
+					rimraf(options.exportDir + "\\bss_generated", e => {
+						console.log(e);
+						a();
+					});
+				} else {
+					thr("Error");
+				}
+			}
+
+		}
 	}
 }

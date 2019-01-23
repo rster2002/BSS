@@ -2,7 +2,7 @@
 
 MIT Licence
 
-Copyright 2018 Bjørn Reemer
+Copyright 2018-2019 Bjørn Reemer
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -24,22 +24,16 @@ THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 const path = require("path")
-var bss;
+const bss = require(path.resolve("./assets/js/compiler.js"));
 const { remove, dialog, ipcRenderer } = require('electron');
 const isDev = require('electron-is-dev');
 
-if (isDev) {
-	bss = require(path.resolve("./assets/js/compiler.js"));
-} else {
-	bss = require("bss-core");
-}
-
-console.log(`%c Compiler %c Version ${bss.version} %c`, "background:#35495e; padding: 1px; border-radius: 3px 0 0 3px; color: white", "background:#FFA500; padding: 1px; border-radius: 0 3px 3px 0; color: white;", "background: transparent;")
+console.log(`%c Compiler %c Version ${bss.version} %c`, "background: #35495e; padding: 1px; border-radius: 3px 0 0 3px; color: white", "background:#FFA500; padding: 1px; border-radius: 0 3px 3px 0; color: white;", "background: transparent;")
 
 if (isDev && bss.version.includes("dev") === false) {
-	console.log(`%c Warn %c Expected development verion but was %c ${bss.version} `, "background:#ff3030; padding: 1px; border-radius: 3px; color: white", "background: transparent;", "background:#FFA500; padding: 1px; border-radius: 3px; color: white;");
+	console.log(`%c Warn %c Expected development verion but was %c ${bss.version} `, "background: #ff3030; padding: 1px; border-radius: 3px; color: white", "background: transparent;", "background:#FFA500; padding: 1px; border-radius: 3px; color: white;");
 } else if (!isDev && bss.version.includes("dev") === true) {
-	console.log(`%c Warn %c Expected production verion but was %c ${bss.version} `, "background:#ff3030; padding: 1px; border-radius: 3px; color: white", "background: transparent;", "background:#FFA500; padding: 1px; border-radius: 3px; color: white;")
+	console.log(`%c Warn %c Expected production verion but was %c ${bss.version} `, "background: #ff3030; padding: 1px; border-radius: 3px; color: white", "background: transparent;", "background:#FFA500; padding: 1px; border-radius: 3px; color: white;")
 }
 
 const idCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -118,7 +112,7 @@ vueApp = new Vue({
 			show: false
 		},
 		lastError: false,
-		compilerMessage: "Nothing build yet..."
+		compilerMessage: "Nothing compiled yet..."
 	},
 	methods: {
 		addPrj() {
