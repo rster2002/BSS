@@ -1,0 +1,6 @@
+# Remove '-template'
+
+appId: rster2002.bss-desktop
+publish:
+    provider: github
+    token: <token>

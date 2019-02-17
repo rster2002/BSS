@@ -28,6 +28,9 @@ const _ = require("lodash");
 const rimraf = require("rimraf");
 const shelljs = require("shelljs");
 
+const mcconverter = require("./compiler/converter.js");
+const bssModules = require("./compiler/bss_modules.js");
+
 var compilerVersion = "1.0.4dev";
 var totalFiles;
 var workspaceDir;
@@ -53,49 +56,6 @@ var traceToConsole = function() {
 			var arg = args[i];
 			console.trace(arg);
 		}
-	}
-}
-
-var bssModules = {
-	random: {
-		files: [
-			{
-				name: "nextrandom.mcfunction",
-				content: `{{ var bss_rtemp = bss_ra }}
-				{{ operation bss_rtemp * bss_rseed }}
-				{{ operation bss_rtemp + bss_rc }}
-				{{ operation bss_rtemp % bss_rm }}
-				{{ var bss_rseed = bss_rtemp }}
-				{{ var bss_rrandomvalue = bss_rtemp }}
-				{{ operation bss_rrandomvalue % bss_rmax }}
-				{{ operation bss_rrandomvalue + bss_rmin }}`
-			},
-			{
-				name: "player_init.mcfunction",
-				content: `{{ var bss_rseed }}
-				{{ var bss_rrandom }}
-				{{ var bss_rm = 134456 }}
-				{{ var bss_ra = 8121 }}
-				{{ var bss_rc = 28411 }}
-				{{ var bss_rtemp = 0 }}
-				{{ var bss_rvalue = 0 }}
-				{{ var bss_rmax = 0 }}
-				{{ var bss_rmin = 0 }}
-				{{ var bss_rrandomvalue = 0 }}
-				{{ var bss_rseeddefined = 0 }}
-
-				{{ if bss_rseeddefined = 0 => }} <<
-					execute store result score @s bss_rseed run data get entity @r Pos[0]
-					execute if score @s bss_rseed matches ..0 run {{ operation bss_rseed * -1 }}
-					{{ operation bss_rseed % m }}
-					{{ var bss_rrandom = bss_rseed }}
-					{{ var bss_rseeddefined = 1 }}
-				>>
-
-				tag @s add bss_rsetup`
-			}
-		],
-		setup: `execute as @s[tag=!bss_rsetup] run {{ call $_namespace:bss_modules/random/player_init }}`
 	}
 }
 
@@ -176,11 +136,11 @@ function buildStringFromCharcode(arr, replace) {
 	return returning;
 }
 
-function readFileAndRender(file) {
+function readFileAndRender(file, version) {
 	console.log("TRACING")
 	traceToConsole(file);
 	console.log(file);
-	if (file !== undefined || !file.includes("\\.mcfunction")) {
+	if (file !== undefined) {
 		var url = workspaceDir + file;
 		url = replaceAll(url, "%20", " ");
 		let chars = [];
@@ -189,11 +149,33 @@ function readFileAndRender(file) {
 		}
 		url = buildStringFromCharcode(chars, {13: ""});
 		logToConsole(url, chars.join("."));
+
 		fs.readFile(url, "utf8", (err, data) => {
 			if (err) {
 				traceToConsole(file);
 				throw err;
 			}
+
+			var temp = file.split(".");
+			if (temp.last() === "mcf") {
+				temp.pop();
+				temp.push("mcfunction");
+			} else if (temp.last() === "bss") {
+				temp.pop();
+				temp.push("mcfunction");
+			}
+
+			console.log(temp);
+			file = temp.join(".");
+
+			console.log(mcconverter);
+			if (version !== undefined) {
+				if (mcconverter[version] !== undefined) {
+					var converter = mcconverter[version];
+					data = converter(data);
+				}
+			}
+
 			let mc = new mcf({file: file});
 			mc.render({
 				content: data
@@ -211,24 +193,34 @@ _reset = {
 		}
 	},
 	use(files) {
+
+		// Checks if the input is a string
+		if (typeof files === "string") {
+			files = [files];
+		}
+
 		for (var i = 0; i < files.length; ++i) {
 			var file = files[i];
-			if (file.includes(".mcfunction")) {
-				readFileAndRender(file);
-			} else {
-				if (!file.includes(".js")) {
-					file = file + ".js";
-				}
-
-				let tempWorkspaceDir = replaceAll(workspaceDir, "%20", " ");
-
-				fs.readFile(tempWorkspaceDir + file, "utf8", function(err, data) {
-					if (err) {
-						throw err;
-					} else {
-						eval(data);
+			if (typeof file === "string") {
+				if (file.includes(".mcfunction") || file.includes(".bss") || file.includes(".mcf")) {
+					readFileAndRender(file);
+				} else {
+					if (!file.includes(".js")) {
+						file = file + ".js";
 					}
-				});
+
+					let tempWorkspaceDir = replaceAll(workspaceDir, "%20", " ");
+
+					fs.readFile(tempWorkspaceDir + file, "utf8", function(err, data) {
+						if (err) {
+							throw err;
+						} else {
+							eval(data);
+						}
+					});
+				}
+			} else if (typeof file === "object") {
+				readFileAndRender(file.file, file.version);
 			}
 		}
 	},
@@ -286,6 +278,11 @@ class mcfunction {
 		if (options === undefined) {
 			options = {};
 		}
+
+		if (typeof options === "string") {
+			options = {file: options}
+		}
+
 		if (options.file !== undefined) {
 			fileDefined = true;
 			fileStockValue = options.file;
@@ -1711,27 +1708,34 @@ class mcfunction {
 			}
 		}
 
+		function cleanUp(content) {
+			content = replaceAll(content, "\t", "");
+			console.log(content);
+			var lines = content.split("\n");
+			console.log(lines);
+			var newLines = [];
+
+			lines.forEach(a => {
+				console.log(a);
+				if (a !== "" && a !== " " && a !== "\t") {
+					newLines.push(a);
+				}
+			});
+
+			console.log(newLines);
+			return newLines.join("\n");
+
+		}
+
 		function exportContent(content) {
+
+			console.log(content);
 
 			if (postPend.length > 0) {
 				content = content + "\n" + postPend.join("\n");
 			}
 
-			content = replaceAll(content, "\t", "");
-
-			let c = [];
-			content = content.split("\n");
-
-			console.log(content);
-
-			content.forEach(line => {
-				console.log(line, line === "", line === " ", line === "  ");
-				if (line !== "" && line !== " ") {
-					c.push(line);
-				}
-			});
-
-			content = c.join("\n");
+			content = cleanUp(content);
 
 
 			if (internalDev === true) {
@@ -1780,7 +1784,7 @@ class mcfunction {
 			}
 		}
 
-		traceToConsole(rtrn);
+		console.log(rtrn);
 
 		// Used for diffientiating between .extend and directly using .render
 		if (extend === undefined || extend === false) {
@@ -1928,6 +1932,11 @@ class loottable {
 				logToConsole(arr);
 
 				content = arrTemp.join("\n");
+				temp = url.split(".");
+				temp.pop();
+				temp.push("mcfunction");
+				console.log(temp);
+				url = temp.join(".");
 
 				logToConsole(content, content.split("\n"));
 				fs.mkdir(i, function() {
@@ -2008,7 +2017,6 @@ module.exports = {
 					thr("Error");
 				}
 			}
-
 		}
 	}
 }
