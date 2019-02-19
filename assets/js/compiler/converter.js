@@ -24,6 +24,7 @@ THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 const {genId} = require("./misc.js");
+const updateBlock = require("./update_block.js");
 
 var matchRecursive = function () {
 	var	formatParts = /^([\S\s]+?)\.\.\.([\S\s]+)/,
@@ -140,7 +141,64 @@ module.exports = {
                 words.shift();
                 var cm = convertLine(words.join(" "));
                 return `execute as ${selector} at @s positioned ${pos} run ${cm}`;
-            }
+            },
+
+			// blockdata <pos> <data>
+			// data merge block <pos> <nbt>
+			blockdata(words) {
+				var pos = `${words[1]} ${words[2]} ${words[3]}`;
+				words.shift();
+				words.shift();
+				words.shift();
+				words.shift();
+				var nbt = words.join(" ");
+				return `data merge block ${pos} ${nbt}`
+			},
+
+			// clear <target> <item> <data> <count> <nbt>
+			// clear <target> <item> <data> <nbt>
+			// clear <target> <item> <count>
+			clear(words) {
+				var target = words[1];
+				var item = updateBlock(words[2], words[3]);
+				var count = words[4];
+				words.shift();
+				words.shift();
+				words.shift();
+				words.shift();
+				words.shift();
+				var nbt = "";
+				console.log(words);
+
+				if (count !== undefined) {
+					t = words.join(" ");
+					if (t !== undefined) {
+						nbt = t;
+					}
+				} else {
+					count = 1;
+				}
+
+
+				console.log(nbt);
+
+				return `clear ${target} ${item}${nbt} ${count}`;
+			},
+
+			difficulty(words) {
+				var i = {
+					"0": "survival",
+					"1": "creative",
+					"2": "adventure",
+					"3": "spectator",
+					"survival": "survival",
+					"creative": "creative",
+					"adventure": "adventure",
+					"spectator": "spectator"
+				}
+
+				return `difficulty ${i[words[1]]}`;
+			}
         }
 
         function convertLine(line) {

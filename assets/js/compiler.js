@@ -31,7 +31,7 @@ const shelljs = require("shelljs");
 const mcconverter = require("./compiler/converter.js");
 const bssModules = require("./compiler/bss_modules.js");
 
-var compilerVersion = "1.0.4dev";
+var compilerVersion = "1.0.5dev";
 var totalFiles;
 var workspaceDir;
 var exportDir;
@@ -141,32 +141,12 @@ function readFileAndRender(file, version) {
 	traceToConsole(file);
 	console.log(file);
 	if (file !== undefined) {
-		var url = workspaceDir + file;
-		url = replaceAll(url, "%20", " ");
-		let chars = [];
-		for (var i = 0; i < url.length; ++i) {
-			chars.push(url.charCodeAt(i));
-		}
-		url = buildStringFromCharcode(chars, {13: ""});
-		logToConsole(url, chars.join("."));
+
+		var exportFile = file;
+		var url = path.resolve(workspaceDir, file);
 
 		fs.readFile(url, "utf8", (err, data) => {
-			if (err) {
-				traceToConsole(file);
-				throw err;
-			}
-
-			var temp = file.split(".");
-			if (temp.last() === "mcf") {
-				temp.pop();
-				temp.push("mcfunction");
-			} else if (temp.last() === "bss") {
-				temp.pop();
-				temp.push("mcfunction");
-			}
-
-			console.log(temp);
-			file = temp.join(".");
+			if (err) {throw new Error(err)}
 
 			console.log(mcconverter);
 			if (version !== undefined) {
@@ -181,7 +161,31 @@ function readFileAndRender(file, version) {
 				content: data
 			});
 		});
+
+		// var url = workspaceDir + file;
+		// url = replaceAll(url, "%20", " ");
+		// let chars = [];
+		// for (var i = 0; i < url.length; ++i) {
+		// 	chars.push(url.charCodeAt(i));
+		// }
+		// url = buildStringFromCharcode(chars, {13: ""});
+		// logToConsole(url, chars.join("."));
+		//
+		// fs.readFile(url, "utf8", (err, data) => {
+		// 	if (err) {
+		// 		traceToConsole(file);
+		// 		throw err;
+		// 	}
+		//
+		//
+		// 	console.log(temp);
+		//
+		// });
 	}
+}
+
+function log(e) {
+	loger(e);
 }
 
 _reset = {
@@ -194,6 +198,8 @@ _reset = {
 	},
 	use(files) {
 
+		console.log(files);
+
 		// Checks if the input is a string
 		if (typeof files === "string") {
 			files = [files];
@@ -202,26 +208,43 @@ _reset = {
 		for (var i = 0; i < files.length; ++i) {
 			var file = files[i];
 			if (typeof file === "string") {
-				if (file.includes(".mcfunction") || file.includes(".bss") || file.includes(".mcf")) {
+				if (file.includes(".mcfunction") || file.includes(".mcf")) {
+					console.log(file);
 					readFileAndRender(file);
 				} else {
 					if (!file.includes(".js")) {
 						file = file + ".js";
 					}
 
-					let tempWorkspaceDir = replaceAll(workspaceDir, "%20", " ");
-
-					fs.readFile(tempWorkspaceDir + file, "utf8", function(err, data) {
-						if (err) {
-							throw err;
-						} else {
-							eval(data);
-						}
+					var url = path.resolve(workspaceDir, file);
+					fs.readFile(url, "utf8", (err, data) => {
+						if (err) {throw new Error(err)}
+						eval(data);
 					});
 				}
-			} else if (typeof file === "object") {
-				readFileAndRender(file.file, file.version);
 			}
+			// var file = files[i];
+			// if (typeof file === "string") {
+			// 	if (file.includes(".mcfunction") || file.includes(".bss") || file.includes(".mcf")) {
+			// 		readFileAndRender(file);
+			// 	} else {
+			// 		if (!file.includes(".js")) {
+			// 			file = file + ".js";
+			// 		}
+			//
+			// 		let tempWorkspaceDir = replaceAll(workspaceDir, "%20", " ");
+			//
+			// 		fs.readFile(tempWorkspaceDir + file, "utf8", function(err, data) {
+			// 			if (err) {
+			// 				throw err;
+			// 			} else {
+			// 				eval(data);
+			// 			}
+			// 		});
+			// 	}
+			// } else if (typeof file === "object") {
+			// 	readFileAndRender(file.file, file.version);
+			// }
 		}
 	},
 	file(f) {
@@ -366,8 +389,10 @@ class mcfunction {
 		var rtrn, runContent, staticRunContent;
 		var postPend = [];
 		if (extend) {
+			log("Extending: '" + this._workingFile + "'");
 			rtrn = this._output;
 		} else {
+			log("Creating: '" + this._workingFile + "'");
 			rtrn = "";
 		}
 
@@ -1731,8 +1756,57 @@ class mcfunction {
 
 			console.log(content);
 
+			var file = internalWorkingFile;
+			var originalPath = internalWorkingFile;
+
+			var temp = file.split(".");
+			if (temp.last() === "mcf") {
+				temp.pop();
+				temp.push("mcfunction");
+			} else if (temp.last() === "bss") {
+				temp.pop();
+				temp.push("mcfunction");
+			}
+
+			console.log(file, temp);
+
+			file = temp.join(".");
+
+			var url = path.resolve(exportDir, file);
+			var folderPath = url.split(path.sep);
+			folderPath.pop();
+			folderPath = folderPath.join("\\");
+
 			if (postPend.length > 0) {
 				content = content + "\n" + postPend.join("\n");
+			}
+
+			if (parsers.length > 0) {
+				parsers.forEach(p => {
+
+					if (p.name !== undefined) {
+						log(`Parsing '${originalPath}' through: '${p.name}'`);
+					}
+
+					function v() {
+						var r = p.method(content, pkg);
+						if (r !== undefined) {
+							content = r;
+						}
+					}
+
+					if (p.filter !== undefined) {
+						var r = p.filter({source: originalPath, exportLocation: file});
+						console.log(r);
+						if (r !== undefined) {
+							if (r === true) {
+								v();
+							}
+						}
+					} else {
+						v();
+					}
+				});
 			}
 
 			content = cleanUp(content);
@@ -1742,37 +1816,8 @@ class mcfunction {
 				logToConsole(content);
 				completeFile();
 			} else {
-				let url = exportDir + internalWorkingFile;
-				url = url.split("%20").join(" ");
-				let chars = [];
-				for (var l = 0; l < url.length; ++l) {
-					chars.push(url.charCodeAt(l));
-				}
-				url = buildStringFromCharcode(chars, {13: ""});
-				logToConsole(url, chars.join("."));
-				let dir = url;
-				let p = dir.split("/");
-				p.pop();
-				let i = p.join("/") + "/";
-				logToConsole(i);
 
-				var arr = content.split("\n");
-				content = "";
-				var arrTemp = [];
-				for (var l = 0; l < arr.length; ++l) {
-					var line = arr[l];
-					logToConsole(line);
-					if (line !== "") {
-						arrTemp.push(line);
-					}
-				}
-
-				logToConsole(arr);
-
-				content = arrTemp.join("\n");
-
-				logToConsole(content, content.split("\n"));
-				shelljs.mkdir("-p", i);
+				shelljs.mkdir("-p", folderPath);
 				fs.writeFile(url, content, function(err) {
 					if (err) {
 						logToConsole(err);
@@ -1780,6 +1825,7 @@ class mcfunction {
 						logToConsole("saved to path: " + url);
 					}
 				});
+
 				completeFile();
 			}
 		}
@@ -1961,6 +2007,9 @@ class loottable {
 var mcf = mcfunction;
 var lt = loottable;
 var _r = renderer;
+var loger= function() {};
+var parsers = [];
+var pkg = {};
 
 module.exports = {
 	mcf: mcf,
@@ -1976,7 +2025,8 @@ module.exports = {
 			completedFiles = 0;
 			totalFiles = 0;
 
-			callback = c;
+			callback = c.callback;
+			loger = c.log;
 
 			renderer = _.cloneDeep(_reset);
 
@@ -1987,7 +2037,73 @@ module.exports = {
 
 			exact = [];
 
-			_r.use(["index.js"]);
+			function b() {
+
+				function c() {
+					fs.readFile(path.resolve(workspaceDir, "./bss.config.js"), "utf8", (err, data) => {
+						if (err) {
+							throw new Error(err);
+						} else {
+							eval(data);
+							if (config !== undefined) {
+								if (config.parsers !== undefined) {
+									if (typeof config.parsers === "object" && Array.isArray(config.parsers)) {
+										parsers = config.parsers;
+									} else {
+										throw new Error("Error parsers: must be an array");
+									}
+								}
+
+								console.log(config.entries);
+								renderer.use(config.entries);
+							} else {
+								throw new Error("Error bss.config.js: no config found");
+							}
+						}
+					});
+				}
+
+				fs.readFile(path.resolve(workspaceDir, "./mcpackage.json"), "utf8", (err, data) => {
+					if (err) {
+						throw new Error(err);
+					} else {
+						var data = JSON.parse(data);
+						data.version.build += 1;
+						pkg = data;
+						fs.writeFile(path.resolve(workspaceDir, "./mcpackage.json"), JSON.stringify(data), err => {
+							if (err) {
+								throw new Error(err)
+							} else {
+								c();
+							}
+						});
+					}
+				});
+
+			}
+
+			fs.exists(path.resolve(workspaceDir, "./mcpackage.json"), exists => {
+				if (exists) {
+					b();
+				} else {
+					var content = {
+						version: {
+							major: 1,
+							minor: 0,
+							build: 0
+						}
+					}
+					fs.writeFile(path.resolve(workspaceDir, "./mcpackage.json"), JSON.stringify(content), err => {
+						if (err) {
+							throw new Error(err)
+						} else {
+							b();
+						}
+					});
+				}
+			})
+
+
 		}
 
 		if (options.exportDir !== undefined) {
