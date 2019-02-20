@@ -161,26 +161,6 @@ function readFileAndRender(file, version) {
 				content: data
 			});
 		});
-
-		// var url = workspaceDir + file;
-		// url = replaceAll(url, "%20", " ");
-		// let chars = [];
-		// for (var i = 0; i < url.length; ++i) {
-		// 	chars.push(url.charCodeAt(i));
-		// }
-		// url = buildStringFromCharcode(chars, {13: ""});
-		// logToConsole(url, chars.join("."));
-		//
-		// fs.readFile(url, "utf8", (err, data) => {
-		// 	if (err) {
-		// 		traceToConsole(file);
-		// 		throw err;
-		// 	}
-		//
-		//
-		// 	console.log(temp);
-		//
-		// });
 	}
 }
 
@@ -223,28 +203,6 @@ _reset = {
 					});
 				}
 			}
-			// var file = files[i];
-			// if (typeof file === "string") {
-			// 	if (file.includes(".mcfunction") || file.includes(".bss") || file.includes(".mcf")) {
-			// 		readFileAndRender(file);
-			// 	} else {
-			// 		if (!file.includes(".js")) {
-			// 			file = file + ".js";
-			// 		}
-			//
-			// 		let tempWorkspaceDir = replaceAll(workspaceDir, "%20", " ");
-			//
-			// 		fs.readFile(tempWorkspaceDir + file, "utf8", function(err, data) {
-			// 			if (err) {
-			// 				throw err;
-			// 			} else {
-			// 				eval(data);
-			// 			}
-			// 		});
-			// 	}
-			// } else if (typeof file === "object") {
-			// 	readFileAndRender(file.file, file.version);
-			// }
 		}
 	},
 	file(f) {
@@ -2040,27 +1998,27 @@ module.exports = {
 			function b() {
 
 				function c() {
-					fs.readFile(path.resolve(workspaceDir, "./bss.config.js"), "utf8", (err, data) => {
-						if (err) {
-							throw new Error(err);
-						} else {
-							eval(data);
-							if (config !== undefined) {
-								if (config.parsers !== undefined) {
-									if (typeof config.parsers === "object" && Array.isArray(config.parsers)) {
-										parsers = config.parsers;
-									} else {
-										throw new Error("Error parsers: must be an array");
-									}
-								}
 
-								console.log(config.entries);
-								renderer.use(config.entries);
+					delete require.cache[require.resolve(path.resolve(workspaceDir, "./bss.config.js"))];
+
+					var config = require(path.resolve(workspaceDir, "./bss.config.js"));
+
+					console.log(config);
+
+					if (config !== {}) {
+						if (config.parsers !== undefined) {
+							if (typeof config.parsers === "object" && Array.isArray(config.parsers)) {
+								parsers = config.parsers;
 							} else {
-								throw new Error("Error bss.config.js: no config found");
+								throw new Error("Error parsers: must be an array");
 							}
 						}
-					});
+
+						console.log(config.entries);
+						renderer.use(config.entries);
+					} else {
+						throw new Error("Error bss.config.js: no config found");
+					}
 				}
 
 				fs.readFile(path.resolve(workspaceDir, "./mcpackage.json"), "utf8", (err, data) => {
