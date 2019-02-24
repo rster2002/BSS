@@ -31,7 +31,7 @@ const shelljs = require("shelljs");
 const mcconverter = require("./compiler/converter.js");
 const bssModules = require("./compiler/bss_modules.js");
 
-var compilerVersion = "1.0.5dev";
+var compilerVersion = "1.0.7dev";
 var totalFiles;
 var workspaceDir;
 var exportDir;

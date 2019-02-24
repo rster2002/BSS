@@ -24,7 +24,13 @@ THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 const path = require("path")
-const bss = require(path.resolve("./assets/js/compiler.js"));
+
+// For development
+// const bss = require(path.resolve("./assets/js/compiler.js"));
+
+// For production
+const bss = require("bss-core");
+
 // const bss = require("bss-core");
 const { remove, dialog, ipcRenderer } = require('electron');
 const isDev = require('electron-is-dev');
