@@ -28,7 +28,10 @@ const _ = require("lodash");
 const rimraf = require("rimraf");
 const shelljs = require("shelljs");
 
-var compilerVersion = "1.0.4dev";
+const mcconverter = require("./compiler/converter.js");
+const bssModules = require("./compiler/bss_modules.js");
+
+var compilerVersion = "1.0.7dev";
 var totalFiles;
 var workspaceDir;
 var exportDir;
@@ -53,49 +56,6 @@ var traceToConsole = function() {
 			var arg = args[i];
 			console.trace(arg);
 		}
-	}
-}
-
-var bssModules = {
-	random: {
-		files: [
-			{
-				name: "nextrandom.mcfunction",
-				content: `{{ var bss_rtemp = bss_ra }}
-				{{ operation bss_rtemp * bss_rseed }}
-				{{ operation bss_rtemp + bss_rc }}
-				{{ operation bss_rtemp % bss_rm }}
-				{{ var bss_rseed = bss_rtemp }}
-				{{ var bss_rrandomvalue = bss_rtemp }}
-				{{ operation bss_rrandomvalue % bss_rmax }}
-				{{ operation bss_rrandomvalue + bss_rmin }}`
-			},
-			{
-				name: "player_init.mcfunction",
-				content: `{{ var bss_rseed }}
-				{{ var bss_rrandom }}
-				{{ var bss_rm = 134456 }}
-				{{ var bss_ra = 8121 }}
-				{{ var bss_rc = 28411 }}
-				{{ var bss_rtemp = 0 }}
-				{{ var bss_rvalue = 0 }}
-				{{ var bss_rmax = 0 }}
-				{{ var bss_rmin = 0 }}
-				{{ var bss_rrandomvalue = 0 }}
-				{{ var bss_rseeddefined = 0 }}
-
-				{{ if bss_rseeddefined = 0 => }} <<
-					execute store result score @s bss_rseed run data get entity @r Pos[0]
-					execute if score @s bss_rseed matches ..0 run {{ operation bss_rseed * -1 }}
-					{{ operation bss_rseed % m }}
-					{{ var bss_rrandom = bss_rseed }}
-					{{ var bss_rseeddefined = 1 }}
-				>>
-
-				tag @s add bss_rsetup`
-			}
-		],
-		setup: `execute as @s[tag=!bss_rsetup] run {{ call $_namespace:bss_modules/random/player_init }}`
 	}
 }
 
@@ -176,30 +136,36 @@ function buildStringFromCharcode(arr, replace) {
 	return returning;
 }
 
-function readFileAndRender(file) {
+function readFileAndRender(file, version) {
 	console.log("TRACING")
 	traceToConsole(file);
 	console.log(file);
-	if (file !== undefined || !file.includes("\\.mcfunction")) {
-		var url = workspaceDir + file;
-		url = replaceAll(url, "%20", " ");
-		let chars = [];
-		for (var i = 0; i < url.length; ++i) {
-			chars.push(url.charCodeAt(i));
-		}
-		url = buildStringFromCharcode(chars, {13: ""});
-		logToConsole(url, chars.join("."));
+	if (file !== undefined) {
+
+		var exportFile = file;
+		var url = path.resolve(workspaceDir, file);
+
 		fs.readFile(url, "utf8", (err, data) => {
-			if (err) {
-				traceToConsole(file);
-				throw err;
+			if (err) {throw new Error(err)}
+
+			console.log(mcconverter);
+			if (version !== undefined) {
+				if (mcconverter[version] !== undefined) {
+					var converter = mcconverter[version];
+					data = converter(data);
+				}
 			}
+
 			let mc = new mcf({file: file});
 			mc.render({
 				content: data
 			});
 		});
 	}
+}
+
+function log(e) {
+	loger(e);
 }
 
 _reset = {
@@ -211,24 +177,31 @@ _reset = {
 		}
 	},
 	use(files) {
+
+		console.log(files);
+
+		// Checks if the input is a string
+		if (typeof files === "string") {
+			files = [files];
+		}
+
 		for (var i = 0; i < files.length; ++i) {
 			var file = files[i];
-			if (file.includes(".mcfunction")) {
-				readFileAndRender(file);
-			} else {
-				if (!file.includes(".js")) {
-					file = file + ".js";
-				}
-
-				let tempWorkspaceDir = replaceAll(workspaceDir, "%20", " ");
-
-				fs.readFile(tempWorkspaceDir + file, "utf8", function(err, data) {
-					if (err) {
-						throw err;
-					} else {
-						eval(data);
+			if (typeof file === "string") {
+				if (file.includes(".mcfunction") || file.includes(".mcf")) {
+					console.log(file);
+					readFileAndRender(file);
+				} else {
+					if (!file.includes(".js")) {
+						file = file + ".js";
 					}
-				});
+
+					var url = path.resolve(workspaceDir, file);
+					fs.readFile(url, "utf8", (err, data) => {
+						if (err) {throw new Error(err)}
+						eval(data);
+					});
+				}
 			}
 		}
 	},
@@ -286,6 +259,11 @@ class mcfunction {
 		if (options === undefined) {
 			options = {};
 		}
+
+		if (typeof options === "string") {
+			options = {file: options}
+		}
+
 		if (options.file !== undefined) {
 			fileDefined = true;
 			fileStockValue = options.file;
@@ -369,8 +347,10 @@ class mcfunction {
 		var rtrn, runContent, staticRunContent;
 		var postPend = [];
 		if (extend) {
+			log("Extending: '" + this._workingFile + "'");
 			rtrn = this._output;
 		} else {
+			log("Creating: '" + this._workingFile + "'");
 			rtrn = "";
 		}
 
@@ -1711,64 +1691,91 @@ class mcfunction {
 			}
 		}
 
+		function cleanUp(content) {
+			content = replaceAll(content, "\t", "");
+			console.log(content);
+			var lines = content.split("\n");
+			console.log(lines);
+			var newLines = [];
+
+			lines.forEach(a => {
+				console.log(a);
+				if (a !== "" && a !== " " && a !== "\t") {
+					newLines.push(a);
+				}
+			});
+
+			console.log(newLines);
+			return newLines.join("\n");
+
+		}
+
 		function exportContent(content) {
+
+			console.log(content);
+
+			var file = internalWorkingFile;
+			var originalPath = internalWorkingFile;
+
+			var temp = file.split(".");
+			if (temp.last() === "mcf") {
+				temp.pop();
+				temp.push("mcfunction");
+			} else if (temp.last() === "bss") {
+				temp.pop();
+				temp.push("mcfunction");
+			}
+
+			console.log(file, temp);
+
+			file = temp.join(".");
+
+			var url = path.resolve(exportDir, file);
+			var folderPath = url.split(path.sep);
+			folderPath.pop();
+			folderPath = folderPath.join("\\");
 
 			if (postPend.length > 0) {
 				content = content + "\n" + postPend.join("\n");
 			}
 
-			content = replaceAll(content, "\t", "");
+			if (parsers.length > 0) {
+				parsers.forEach(p => {
 
-			let c = [];
-			content = content.split("\n");
+					if (p.name !== undefined) {
+						log(`Parsing '${originalPath}' through: '${p.name}'`);
+					}
 
-			console.log(content);
+					function v() {
+						var r = p.method(content, pkg);
+						if (r !== undefined) {
+							content = r;
+						}
+					}
 
-			content.forEach(line => {
-				console.log(line, line === "", line === " ", line === "  ");
-				if (line !== "" && line !== " ") {
-					c.push(line);
-				}
-			});
+					if (p.filter !== undefined) {
+						var r = p.filter({source: originalPath, exportLocation: file});
+						console.log(r);
+						if (r !== undefined) {
+							if (r === true) {
+								v();
+							}
+						}
+					} else {
+						v();
+					}
+				});
+			}
 
-			content = c.join("\n");
+			content = cleanUp(content);
 
 
 			if (internalDev === true) {
 				logToConsole(content);
 				completeFile();
 			} else {
-				let url = exportDir + internalWorkingFile;
-				url = url.split("%20").join(" ");
-				let chars = [];
-				for (var l = 0; l < url.length; ++l) {
-					chars.push(url.charCodeAt(l));
-				}
-				url = buildStringFromCharcode(chars, {13: ""});
-				logToConsole(url, chars.join("."));
-				let dir = url;
-				let p = dir.split("/");
-				p.pop();
-				let i = p.join("/") + "/";
-				logToConsole(i);
 
-				var arr = content.split("\n");
-				content = "";
-				var arrTemp = [];
-				for (var l = 0; l < arr.length; ++l) {
-					var line = arr[l];
-					logToConsole(line);
-					if (line !== "") {
-						arrTemp.push(line);
-					}
-				}
-
-				logToConsole(arr);
-
-				content = arrTemp.join("\n");
-
-				logToConsole(content, content.split("\n"));
-				shelljs.mkdir("-p", i);
+				shelljs.mkdir("-p", folderPath);
 				fs.writeFile(url, content, function(err) {
 					if (err) {
 						logToConsole(err);
@@ -1776,11 +1783,12 @@ class mcfunction {
 						logToConsole("saved to path: " + url);
 					}
 				});
+
 				completeFile();
 			}
 		}
 
-		traceToConsole(rtrn);
+		console.log(rtrn);
 
 		// Used for diffientiating between .extend and directly using .render
 		if (extend === undefined || extend === false) {
@@ -1928,6 +1936,11 @@ class loottable {
 				logToConsole(arr);
 
 				content = arrTemp.join("\n");
+				temp = url.split(".");
+				temp.pop();
+				temp.push("mcfunction");
+				console.log(temp);
+				url = temp.join(".");
 
 				logToConsole(content, content.split("\n"));
 				fs.mkdir(i, function() {
@@ -1952,6 +1965,9 @@ class loottable {
 var mcf = mcfunction;
 var lt = loottable;
 var _r = renderer;
+var loger= function() {};
+var parsers = [];
+var pkg = {};
 
 module.exports = {
 	mcf: mcf,
@@ -1967,7 +1983,8 @@ module.exports = {
 			completedFiles = 0;
 			totalFiles = 0;
 
-			callback = c;
+			callback = c.callback;
+			loger = c.log;
 
 			renderer = _.cloneDeep(_reset);
 
@@ -1978,7 +1995,73 @@ module.exports = {
 
 			exact = [];
 
-			_r.use(["index.js"]);
+			function b() {
+
+				function c() {
+
+					delete require.cache[require.resolve(path.resolve(workspaceDir, "./bss.config.js"))];
+
+					var config = require(path.resolve(workspaceDir, "./bss.config.js"));
+
+					console.log(config);
+
+					if (config !== {}) {
+						if (config.parsers !== undefined) {
+							if (typeof config.parsers === "object" && Array.isArray(config.parsers)) {
+								parsers = config.parsers;
+							} else {
+								throw new Error("Error parsers: must be an array");
+							}
+						}
+
+						console.log(config.entries);
+						renderer.use(config.entries);
+					} else {
+						throw new Error("Error bss.config.js: no config found");
+					}
+				}
+
+				fs.readFile(path.resolve(workspaceDir, "./mcpackage.json"), "utf8", (err, data) => {
+					if (err) {
+						throw new Error(err);
+					} else {
+						var data = JSON.parse(data);
+						data.version.build += 1;
+						pkg = data;
+						fs.writeFile(path.resolve(workspaceDir, "./mcpackage.json"), JSON.stringify(data), err => {
+							if (err) {
+								throw new Error(err)
+							} else {
+								c();
+							}
+						});
+					}
+				});
+
+			}
+
+			fs.exists(path.resolve(workspaceDir, "./mcpackage.json"), exists => {
+				if (exists) {
+					b();
+				} else {
+					var content = {
+						version: {
+							major: 1,
+							minor: 0,
+							build: 0
+						}
+					}
+					fs.writeFile(path.resolve(workspaceDir, "./mcpackage.json"), JSON.stringify(content), err => {
+						if (err) {
+							throw new Error(err)
+						} else {
+							b();
+						}
+					});
+				}
+			})
+
+
 		}
 
 		if (options.exportDir !== undefined) {
@@ -2008,7 +2091,6 @@ module.exports = {
 					thr("Error");
 				}
 			}
-
 		}
 	}
 }

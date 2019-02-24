@@ -1,0 +1,6 @@
+electron-builder.yml
+
+/node_modules/
+/test/
+/package/
+/dist/

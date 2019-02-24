@@ -69,12 +69,26 @@
 				</div>
 			</div>
 			<div class="loader" style="display: none;">
-				<div class="bar">
-					<div class="progress" v-bind:class="{ error: lastError }">
+				<div class="barWrapper">
+					<div class="bar">
+						<div class="progress" v-bind:class="{ error: lastError }">
 
+						</div>
+					</div>
+					<h1 class="compilerMessage show">{{ compilerMessage }}</h1>
+				</div>
+				<div class="console">
+					<div class="message" v-for="entry in console" :style="{ backgroundColor: clr(entry.type) }">
+						<div class="icon">
+							<span class="material-icons" v-if="entry.type === 'log'">info</span>
+							<span class="material-icons" v-if="entry.type === 'error'">error</span>
+							<span class="material-icons" v-if="entry.type === 'warn'">warning</span>
+						</div>
+						<div class="text">
+							<p>{{ entry.message }}</p>
+						</div>
 					</div>
 				</div>
-				<h1 class="compilerMessage show">{{ compilerMessage }}</h1>
 			</div>
 		</div>
 		<script src="./js/keywords.js"></script>

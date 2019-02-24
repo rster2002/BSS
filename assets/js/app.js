@@ -24,8 +24,14 @@ THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 const path = require("path")
+
+// For development
 // const bss = require(path.resolve("./assets/js/compiler.js"));
+
+// For production
 const bss = require("bss-core");
+
+// const bss = require("bss-core");
 const { remove, dialog, ipcRenderer } = require('electron');
 const isDev = require('electron-is-dev');
 
@@ -112,12 +118,41 @@ vueApp = new Vue({
 		error: {
 			show: false
 		},
+		console: [
+		],
 		lastError: false,
-		compilerMessage: "Nothing compiled yet..."
+		compilerMessage: "Nothing compiled yet...",
+		currentCompiling: false
+	},
+	watch: {
+		currentCompiling() {
+			if (this.currentCompiling === false) {
+				$("#topTitle").text("BlueStone Script");
+				setTimeout(function() {
+					$(".loader .bar").removeClass("active");
+					$(".loader .bar .progress").css("width", "0%");
+					$(".compilerMessage").addClass("show");
+				}, 3000);
+			} else {
+				$("#topTitle").text("Rendering...");
+				$(".loader .bar").add("active");
+				$(".loader .bar .progress").css("width", "5%");
+				$(".compilerMessage").removeClass("show");
+			}
+		}
 	},
 	methods: {
 		addPrj() {
 			$(".overlay.addPrj").show();
+		},
+		clr(type) {
+			if (type === "log") {
+				return "rgba(255, 255, 255, 0.6)";
+			} else if (type === "warn") {
+				return "rgba(251, 190, 45, 0.6)";
+			} else if (type === "error") {
+				return "rgba(255, 48, 48, 0.6)";
+			}
 		},
 		choseDir(dir) {
 			var path = dialog.showOpenDialog({
@@ -244,17 +279,31 @@ window.addEventListener('error', function(e) {
 			$(".compilerMessage").addClass("show");
 		}, 5000);
 	}
-	console.error(`[ERROR @ ${source} -> ${e.lineno}:${e.colno}] ${e.message}`);
-	vueApp.error = {
-		message: e.message,
-		source: source,
-		line: e.lineno,
-		col: e.colno,
-		error: e.error,
-		show: true
-	};
+	var errMessage = `[ERROR @ ${source} -> ${e.lineno}:${e.colno}] ${e.message}`;
+	console.error(errMessage);
+	vueApp.console.push({
+		type: "error",
+		message: errMessage
+	});
+
+	vueApp.show = {
+		build: true,
+		projects: true,
+		add: false
+	}
+
+	$(".loader .bar .progress").css("width", "100%");
+
+	// vueApp.error = {
+	// 	message: e.message,
+	// 	source: source,
+	// 	line: e.lineno,
+	// 	col: e.colno,
+	// 	error: e.error,
+	// 	show: true
+	// };
 	vueApp.lastError = true;
-	currentCompiling = false;
+	vueApp.currentCompiling = false;
 });
 
 function thr(err) {
@@ -269,18 +318,17 @@ if (load("prjById") === null) {
 	store("prjById", {});
 }
 
-var currentCompiling = false;
-
 function compile() {
-	if (currentCompiling === false) {
+	if (vueApp.currentCompiling === false) {
 
-		currentCompiling = true;
+		vueApp.console = [];
+
+		vueApp.currentCompiling = true;
 
 		vueApp.lastError = false;
-		$(".loader .bar .progress").css("width", "5%");
-		$(".loader .bar").addClass("active");
-		$(".compilerMessage").removeClass("show");
-		$("#topTitle").text("Rendering...");
+		// $(".loader .bar .progress").css("width", "5%");
+		// $(".loader .bar").addClass("active");
+		// $(".compilerMessage").removeClass("show");
 		vueApp.show = {
 			build: false,
 			projects: false,
@@ -290,26 +338,28 @@ function compile() {
 		var prj = Object.assign({}, vueApp.currentPrj);
 		prj.logging = isDev;
 
-		bss.compile(prj, function(c) {
-			$(".loader .bar .progress").css("width", c.percentage + "%");
+		bss.compile(prj, {
+			callback(c) {
+				$(".loader .bar .progress").css("width", c.percentage + "%");
 
-			vueApp.compilerMessage = `Rendered ${c.completedFiles} out of ${c.totalFiles} files`
+				vueApp.compilerMessage = `Rendered ${c.completedFiles} out of ${c.totalFiles} files`
 
-			if (c.percentage === 100) {
-				vueApp.show = {
-					build: true,
-					projects: true,
-					add: false
+				if (c.percentage === 100) {
+					vueApp.show = {
+						build: true,
+						projects: true,
+						add: false
+					}
+					$("#topTitle").text("Done!");
+
+					vueApp.currentCompiling = false;
 				}
-				$("#topTitle").text("Done!");
-
-				setTimeout(function() {
-					$(".loader .bar").removeClass("active");
-					$(".loader .bar .progress").css("width", "0%");
-					$(".compilerMessage").addClass("show");
-				}, 3000);
-
-				currentCompiling = false;
+			},
+			log(e) {
+				vueApp.console.push({
+					type: "log",
+					message: e
+				});
 			}
 		});
 	}
