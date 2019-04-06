@@ -1,64 +1,3 @@
-/*
-
-MIT Licence
-
-Copyright 2018-2019 Bjørn Reemer
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
-THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-
-const fs = require("fs");
-const _ = require("lodash");
-const rimraf = require("rimraf");
-const shelljs = require("shelljs");
-
-const mcconverter = require("./compiler/converter.js");
-const bssModules = require("./compiler/bss_modules.js");
-
-var compilerVersion = "1.0.7dev";
-var totalFiles;
-var workspaceDir;
-var exportDir;
-var totalFiles;
-var completedFiles;
-var callback = function() {}
-var logging = false;
-var logToConsole = function() {
-	if (logging) {
-		var args = arguments;
-		for (var i = 0; i < args.length; ++i) {
-			var arg = args[i];
-			console.log(arg);
-		}
-	}
-}
-
-var traceToConsole = function() {
-	if (logging) {
-		var args = arguments;
-		for (var i = 0; i < args.length; ++i) {
-			var arg = args[i];
-			console.trace(arg);
-		}
-	}
-}
-
 var matchRecursive = function () {
 	var	formatParts = /^([\S\s]+?)\.\.\.([\S\s]+)/,
 		metaChar = /[-[\]{}()*+?.\\^$|,]/g,
@@ -136,38 +75,6 @@ function buildStringFromCharcode(arr, replace) {
 	return returning;
 }
 
-function readFileAndRender(file, version) {
-	console.log("TRACING")
-	traceToConsole(file);
-	console.log(file);
-	if (file !== undefined) {
-
-		var exportFile = file;
-		var url = path.resolve(workspaceDir, file);
-
-		fs.readFile(url, "utf8", (err, data) => {
-			if (err) {throw new Error(err)}
-
-			console.log(mcconverter);
-			if (version !== undefined) {
-				if (mcconverter[version] !== undefined) {
-					var converter = mcconverter[version];
-					data = converter(data);
-				}
-			}
-
-			let mc = new mcf({file: file});
-			mc.render({
-				content: data
-			});
-		});
-	}
-}
-
-function log(e) {
-	loger(e);
-}
-
 _reset = {
 	_data: {
 		mcf: {
@@ -196,11 +103,11 @@ _reset = {
 						file = file + ".js";
 					}
 
-					var url = path.resolve(workspaceDir, file);
-					fs.readFile(url, "utf8", (err, data) => {
-						if (err) {throw new Error(err)}
-						eval(data);
-					});
+					// var url = path.resolve(workspaceDir, file);
+					// fs.readFile(url, "utf8", (err, data) => {
+					// 	if (err) {throw new Error(err)}
+					// 	eval(data);
+					// });
 				}
 			}
 		}
@@ -251,7 +158,8 @@ function evalPath(p) {
 	}
 }
 
-renderer = _.cloneDeep(_reset);
+// renderer = _.cloneDeep(_reset);
+renderer = _reset;
 
 class mcfunction {
 	constructor(options) {
@@ -346,13 +254,14 @@ class mcfunction {
 		var preLine = [];
 		var rtrn, runContent, staticRunContent;
 		var postPend = [];
-		if (extend) {
-			log("Extending: '" + this._workingFile + "'");
-			rtrn = this._output;
-		} else {
-			log("Creating: '" + this._workingFile + "'");
-			rtrn = "";
-		}
+		var additionalFiles = [];
+		// if (extend) {
+		// 	log("Extending: '" + this._workingFile + "'");
+		// 	rtrn = this._output;
+		// } else {
+		// 	log("Creating: '" + this._workingFile + "'");
+		// 	rtrn = "";
+		// }
 
 		function randomString(l) {
 			let characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -1730,7 +1639,8 @@ class mcfunction {
 
 			file = temp.join(".");
 
-			var url = path.resolve(exportDir, file);
+			var url = path.resolve(exportDir, functionOutputPath);
+			url = path.resolve(url, file);
 			var folderPath = url.split(path.sep);
 			folderPath.pop();
 			folderPath = folderPath.join("\\");
@@ -1774,17 +1684,17 @@ class mcfunction {
 				logToConsole(content);
 				completeFile();
 			} else {
-
-				shelljs.mkdir("-p", folderPath);
-				fs.writeFile(url, content, function(err) {
-					if (err) {
-						logToConsole(err);
-					} else {
-						logToConsole("saved to path: " + url);
-					}
-				});
-
-				completeFile();
+				//
+				// shelljs.mkdir("-p", folderPath);
+				// fs.writeFile(url, content, function(err) {
+				// 	if (err) {
+				// 		logToConsole(err);
+				// 	} else {
+				// 		logToConsole("saved to path: " + url);
+				// 	}
+				// });
+				//
+				// completeFile();
 			}
 		}
 
@@ -1807,290 +1717,4 @@ class mcfunction {
 	}
 }
 
-class loottable {
-	constructor(options) {
-		if (options === undefined) {
-			console.error("No config defined");
-			return;
-		}
-		if (options.file === undefined) {
-			console.error("No export file defined");
-			return;
-		}
-		totalFiles += 1;
-		this._dev = options.dev !== undefined ? options.dev : false;
-		this._workingFile = options.file;
-	}
-
-	render(lootTable) {
-		var returningEntries = [];
-		var lastWeight = 1;
-		var lastCalculatedWeight = 1;
-		var internalExported = false;
-		var internalDev = this._dev;
-		var internalWorkingFile = this._workingFile;
-
-		function completeFile() {
-			if (internalExported === false) {
-				completedFiles += 1;
-
-				let percentage = (completedFiles / totalFiles) * 100;
-				if (percentage > 100) {percentage = 100}
-
-				callback({
-					completedFiles: completedFiles,
-					totalFiles: totalFiles,
-					percentage: percentage
-				});
-			}
-		}
-
-		function runEntries(entries, collection) {
-			var totalWeight = 0;
-			for (var p = 0; p < entries.length; ++p) {
-				totalWeight += entries[p]["weight"];
-			}
-			for (var p = 0; p < entries.length; ++p) {
-				var entry = entries[p];
-				entry.weight = entry.weight * lastWeight;
-				logToConsole(entry);
-				if (entry.type === "collection") {
-					// var lastWeight = entry.weight;
-					// var totalWeight = 0;
-					// for (var p = 0; p < entry["entries"].length; ++p) {
-					// 	totalWeight += entry["entries"][p];
-					// }
-					// logToConsole(totalWeight);
-					lastCalculatedWeight = (entry.weight / totalWeight) * lastCalculatedWeight;
-					logToConsole({
-						entry: entry,
-						totalWeight: totalWeight,
-						lastCalculatedWeight: lastCalculatedWeight,
-						calc: (entry.weight / totalWeight) * lastCalculatedWeight
-					});
-					runEntries(entry["entries"], true);
-				} else {
-					// let w = 0;
-					// if (even) {
-					// 	w = entries.length;
-					// }
-					// entry.weight *= 10000;
-					logToConsole({
-						entry: entry,
-						totalWeight: totalWeight,
-						lastCalculatedWeight: lastCalculatedWeight,
-						calc: (entry.weight / totalWeight) * lastCalculatedWeight
-					});
-
-					if (collection) {
-						entry.weight = (entry.weight / totalWeight) * lastCalculatedWeight;
-					}
-					entry.weight *= 10000;
-					var i = String(entry.weight);
-					logToConsole(entry.weight, i, i.split("."), i.split(".")[0], )
-					entry.weight = Number(i.split(".")[0]);
-					returningEntries.push(entry);
-				}
-			}
-		}
-
-		var pools = lootTable["pools"];
-		var newPools = [];
-		for (var i = 0; i < pools.length; ++i) {
-			var pool = pools[i];
-			runEntries(pool["entries"], false);
-			pool.entries = returningEntries;
-			newPools.push(pool);
-		}
-
-		function exportContent(content) {
-			if (internalDev === true) {
-				logToConsole(content);
-				completeFile();
-			} else {
-				let url = exportDir + internalWorkingFile;
-				url = url.split("%20").join(" ");
-				let chars = [];
-				for (var l = 0; l < url.length; ++l) {
-					chars.push(url.charCodeAt(l));
-				}
-				url = buildStringFromCharcode(chars, {13: ""});
-				logToConsole(url, chars.join("."));
-				let dir = url;
-				let p = dir.split("/");
-				p.pop();
-				let i = p.join("/") + "/";
-				logToConsole(i);
-
-				var arr = content.split("\n");
-				content = "";
-				var arrTemp = [];
-				for (var l = 0; l < arr.length; ++l) {
-					var line = arr[l];
-					logToConsole(line);
-					if (line !== "") {
-						arrTemp.push(line);
-					}
-				}
-
-				logToConsole(arr);
-
-				content = arrTemp.join("\n");
-				temp = url.split(".");
-				temp.pop();
-				temp.push("mcfunction");
-				console.log(temp);
-				url = temp.join(".");
-
-				logToConsole(content, content.split("\n"));
-				fs.mkdir(i, function() {
-					fs.writeFile(url, content, function(err) {
-						if (err) {
-							logToConsole(err);
-						} else {
-							logToConsole("saved");
-						}
-					});
-				});
-				completeFile();
-			}
-		}
-
-		lootTable.pools = newPools;
-		exportContent(JSON.stringify(lootTable));
-	}
-}
-
-// defines some shorthands
-var mcf = mcfunction;
-var lt = loottable;
-var _r = renderer;
-var loger= function() {};
-var parsers = [];
-var pkg = {};
-
-module.exports = {
-	mcf: mcf,
-	mcfunction: mcfunction,
-	lt: lt,
-	loottable: loottable,
-	renderer: renderer,
-	_r: _r,
-	version: compilerVersion,
-	compile: function(options, c) {
-
-		function a() {
-			completedFiles = 0;
-			totalFiles = 0;
-
-			callback = c.callback;
-			loger = c.log;
-
-			renderer = _.cloneDeep(_reset);
-
-			workspaceDir = options.workspaceDir;
-			exportDir = options.exportDir;
-
-			if (options.logging) {logging = true} else {logging = false}
-
-			exact = [];
-
-			function b() {
-
-				function c() {
-
-					delete require.cache[require.resolve(path.resolve(workspaceDir, "./bss.config.js"))];
-
-					var config = require(path.resolve(workspaceDir, "./bss.config.js"));
-
-					console.log(config);
-
-					if (config !== {}) {
-						if (config.parsers !== undefined) {
-							if (typeof config.parsers === "object" && Array.isArray(config.parsers)) {
-								parsers = config.parsers;
-							} else {
-								throw new Error("Error parsers: must be an array");
-							}
-						}
-
-						console.log(config.entries);
-						renderer.use(config.entries);
-					} else {
-						throw new Error("Error bss.config.js: no config found");
-					}
-				}
-
-				fs.readFile(path.resolve(workspaceDir, "./mcpackage.json"), "utf8", (err, data) => {
-					if (err) {
-						throw new Error(err);
-					} else {
-						var data = JSON.parse(data);
-						data.version.build += 1;
-						pkg = data;
-						fs.writeFile(path.resolve(workspaceDir, "./mcpackage.json"), JSON.stringify(data), err => {
-							if (err) {
-								throw new Error(err)
-							} else {
-								c();
-							}
-						});
-					}
-				});
-
-			}
-
-			fs.exists(path.resolve(workspaceDir, "./mcpackage.json"), exists => {
-				if (exists) {
-					b();
-				} else {
-					var content = {
-						version: {
-							major: 1,
-							minor: 0,
-							build: 0
-						}
-					}
-					fs.writeFile(path.resolve(workspaceDir, "./mcpackage.json"), JSON.stringify(content), err => {
-						if (err) {
-							throw new Error(err)
-						} else {
-							b();
-						}
-					});
-				}
-			})
-
-
-		}
-
-		if (options.exportDir !== undefined) {
-
-			if (options.exportDir[options.exportDir.length - 1] === "/") {
-				rimraf(options.exportDir + "/bss_generated", e => {
-					console.log(e);
-					a();
-				});
-			} else if (options.exportDir[options.exportDir.length - 1] === "\\") {
-				rimraf(options.exportDir + "\\bss_generated", e => {
-					console.log(e);
-					a();
-				});
-			} else {
-				if (options.exportDir.includes("/")) {
-					rimraf(options.exportDir + "/bss_generated", e => {
-						console.log(e);
-						a();
-					});
-				} else if (options.exportDir.includes("\\")) {
-					rimraf(options.exportDir + "\\bss_generated", e => {
-						console.log(e);
-						a();
-					});
-				} else {
-					thr("Error");
-				}
-			}
-		}
-	}
-}
+module.exports = mcfunction;
