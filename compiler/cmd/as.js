@@ -17,10 +17,19 @@ function cleanStr(a) {
 module.exports = function(words, config, extra) {
 
 	var { global, genCmd, layer } = extra;
+	var at = "";
 
 	layer++;
 
 	words.shift();
+
+	if (words[0] === "at" || config.autoAt === true) {
+		at = "at @s ";
+
+		if (words[0] === "at") {
+			words.shift();
+		}
+	}
 
 	var out = [];
 	var healed = words.join(" ");
@@ -29,7 +38,7 @@ module.exports = function(words, config, extra) {
 
 	selectors.forEach(a => {
 		let s = cleanStr(a);
-		out.push(`execute as ${s} at @s ${genCmd(layer)}`);
+		out.push(`execute as ${s} ${at}${genCmd(layer)}`);
 	});
 
 	return out.join("\n");

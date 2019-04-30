@@ -1,4 +1,5 @@
 const cmds = require("./compiler/cmds.js");
+const path = require("path");
 
 var matchRecursive = function () {
 	var	formatParts = /^([\S\s]+?)\.\.\.([\S\s]+)/,
@@ -73,7 +74,7 @@ function replaceAll(input, replace, replaced) {
 }
 
 module.exports = function(a) {
-	var {log, warn, content, config, persist} = a;
+	var { log, warn, error, content, config, persist, relativePath } = a;
 	var lines = [];
 	var additionalFiles = [];
 	var newContent = [];
@@ -81,10 +82,13 @@ module.exports = function(a) {
 	var atBack = [];
 	var store = {
 		blocks: {},
-		selectors: {}
+		nbt: {},
+		dataBlocks: {}
 	};
 	var global = {
-		selector: "@s"
+		selector: "@s",
+		local: {},
+		functions: {}
 	};
 
 	// Sets up the persist store
@@ -93,13 +97,27 @@ module.exports = function(a) {
 	}
 
 	if (persist.blockCount === undefined) {
-		persist.blockCount = 0;
-		console.log("S");
+		persist.blockCount = {};
 	}
+
+	// if (persist.setupFile === undefined) {
+	// 	persist.setupFile = true;
+	// 	additionalFiles.push({
+	// 		path: "./test.mcfunction",
+	// 		content: "",
+	// 		extendable: true
+	// 	})
+	// }
 
 	// Defaults the config
 	config = Object.assign({
-		namespace: "null"
+		namespace: "null",
+		cleanup: true,
+		numberprefix: "n-",
+		blockPrefix: "b-",
+		autoAt: false,
+		initScoreboard: false,
+		argPrefix: "arg"
 	}, config);
 
 	// Function for clearing a file
@@ -115,131 +133,180 @@ module.exports = function(a) {
 	}
 
 	var blocks = matchRecursive(content, "<<...>>");
-	var blockCount = persist.blockCount;
 
 	blocks.forEach(a => {
-		let id = "b-" + blockCount;
-		persist.blockCount++;
-		content = content.replace(`<<${a}>>`, `function ${config.namespace}:bss_generated/${id}`);
-		store.blocks[id] = a;
+		let relPath = replaceAll(path.dirname(relativePath), "\\", "/").split("/");
+
+		if (relPath[relPath.length - 1] !== "bss_generated") {
+			relPath.push("bss_generated");
+		}
+
+		if (relPath[0] === ".") {
+			relPath.shift();
+		}
+
+		relPath.push(path.basename(relativePath, ".mcfunction"));
+
+		relPath = relPath.join("/");
+
+		if (persist.blockCount[relPath] === undefined) {
+			persist.blockCount[relPath] = 0;
+		}
+
+		let id = "bss_block_" + config.blockPrefix + persist.blockCount[relPath];
+		persist.blockCount[relPath]++;
+
+		content = content.replace(`<<${a}>>`, `function ${config.namespace}:${relPath}/${id}`);
+		store.blocks[relPath + "/" + id] = a;
+
+		let bxp = "";
 
 		additionalFiles.push({
-			path: `./bss_generated/${id}.mcfunction`,
-			content: a
+			path: `${relPath}/${id}.mcfunction`,
+			content: a,
+			root: true
 		});
 	});
 
-	function s(a) {
-		var selectors = matchRecursive(content, `@${a}[...]`);
+	// Stores the nbt objects into an id
+	var nbts = matchRecursive(content, "{...}");
+	nbts.forEach(a => {
+		var id = genId();
+		store.nbt[id] = a;
+		content = content.replace(`{${a}}`, id);
+	});
 
-		selectors.forEach(b => {
-			var id = genId();
-			content = content.replace(`@${a}[${b}]`, id);
-			store.selectors[id] = `@${a}[${b}]`;
-		});
-	}
-
-	s("p");
-	s("a");
-	s("r");
-	s("s");
-	s("e");
+	// Stores the data blocks into an id
+	var dataBlocks = matchRecursive(content, `[...]`);
+	dataBlocks.forEach(b => {
+		var id = genId();
+		content = content.replace(`[${b}]`, id);
+		store.dataBlocks[id] = `[${b}]`;
+	});
 
 	// Removes tabs
-	content = replaceAll(content, "\t", "");
+	// content = replaceAll(content, "\t", "");
+	// console.log(content.trim(), content.split("\t"));
 
 	// Turns arrows into 'run'
 	content = replaceAll(content, "=>", "run");
 
 	lines = content.split("\n");
 
-	// For every line
-	lines.forEach(line => {
+	function runLines(lines) {
 
-		var newLine = [];
-		var context = {
-			front: ""
-		}
+		var newContent = [];
 
-		// Finds every command
-		var commands = line.split(" run ");
-		var callTrace = 0;
-		var newLine = true;
+		// For every line
+		lines.forEach(line => {
 
-		function genCmd(layer) {
-			var internalCmds = commands;
-			callTrace += 1;
-			internalCmds = internalCmds.slice(layer, Infinity);
-			var a = internalCmds[0];
+			var newLine = [];
+			var context = {
+				front: ""
+			}
 
-			if (a === undefined) {
-				warn("Unexpected end: Expected a new command but instead got nothing");
-				return "";
-			} else {
-				var internalLine = [];
+			// Finds every command
+			var commands = line.split(" run ");
+			var callTrace = 0;
+			var newLine = true;
 
-				// Makes an array of words
-				var words = clean(a.split(" "));
+			function genCmd(layer) {
+				var internalCmds = commands;
+				callTrace += 1;
+				internalCmds = internalCmds.slice(layer, Infinity);
+				var a = internalCmds[0];
 
-				// Checks if the word is a special command
-				if (cmds[words[0]] !== undefined) {
+				function runCmd(a) {
+					if (a === undefined) {
+						warn("Unexpected end: Expected a new command but instead got nothing");
+						return "";
+					} else {
+						var internalLine = [];
 
-					// Gets the output from the command
-					let r = cmds[words[0]](words, config, {
-						global,
-						persist,
-						genCmd,
-						layer
-					});
+						var locals = Object.entries(global.local);
+						locals.forEach(s => {
+							a = replaceAll(a, "$" + s[0], s[1]);
+						});
 
-					if (typeof r === "string") {
-						internalLine.push(r);
-					} else if (typeof r === "object") {
-						if (r.inFront !== undefined) {
-							inFront = [...inFront, ...r.inFront];
-						}
-						if (r.atBack !== undefined) {
-							atBack = [...atBack, ...r.atBack];
-						}
-						if (r.content !== undefined) {
-							internalLine.push(r.content);
-						}
-						if (r.global !== undefined) {
-							global = r.global;
-						}
-						if (r.additionalFiles !== undefined) {
-							additionalFiles = [...additionalFiles, r.additionalFiles];
-						}
+						// Makes an array of words
+						var words = clean(a.split(" "));
 
-						if (r.persist !== undefined) {
-							persist = r.persist;
-						}
+						// Checks if the word is a special command
+						if (cmds[words[0]] !== undefined) {
 
-						if (r.emit !== undefined) {
-							var entr = Object.entries(r.emit);
-
-							entr.forEach(em => {
-								store = em(store);
+							// Gets the output from the command
+							let r = cmds[words[0]](words, config, {
+								global,
+								config,
+								persist,
+								genCmd,
+								layer,
+								error,
+								store,
+								runCmd,
+								runLines
 							});
+
+							if (typeof r === "string") {
+								internalLine.push(r);
+							} else if (typeof r === "object") {
+								if (r.inFront !== undefined) {
+									inFront = [...inFront, ...r.inFront];
+								}
+								if (r.atBack !== undefined) {
+									atBack = [...atBack, ...r.atBack];
+								}
+								if (r.content !== undefined) {
+									internalLine.push(r.content);
+								}
+								if (r.store !== undefined) {
+									global = r.store;
+								}
+								if (r.global !== undefined) {
+									global = r.global;
+								}
+								if (r.additionalFiles !== undefined) {
+									additionalFiles = [...additionalFiles, ...r.additionalFiles];
+								}
+
+								if (r.persist !== undefined) {
+									persist = r.persist;
+								}
+
+								if (r.emit !== undefined) {
+									var entr = Object.entries(r.emit);
+
+									entr.forEach(em => {
+										store = em(store);
+									});
+								}
+
+							}
+						} else {
+							let c = commands;
+							c = c.slice(layer, Infinity);
+							internalLine.push(c.join(" run "));
+						}
+
+						if (layer === 0) {
+							newLine = false;
+							return internalLine[0];
+						} else {
+							return "run " + internalLine[0];
 						}
 					}
-				} else {
-					let c = commands;
-					c = c.slice(layer, Infinity);
-					internalLine.push(c.join(" run "));
 				}
 
-				if (layer === 0) {
-					newLine = false;
-					return internalLine[0];
-				} else {
-					return "run " + internalLine[0];
-				}
+				return runCmd(a);
 			}
-		}
 
-		newContent.push(genCmd(0));
-	});
+			newContent.push(genCmd(0));
+		});
+
+		return newContent;
+	}
+
+	newContent = runLines(lines);
 
 	var exportContent = newContent.join("\n");
 
@@ -251,27 +318,37 @@ module.exports = function(a) {
 		exportContent = atBack.join("\n") + "\n" + exportContent;
 	}
 
-	// Recovers the selectors
-	var selectorEntries = Object.entries(store.selectors);
-	selectorEntries.forEach(a => {
+	// Recovers the data blocks
+	var dataBlocksEntries = Object.entries(store.dataBlocks);
+	dataBlocksEntries.forEach(a => {
 		var id = a[0];
 		var content = a[1];
 		exportContent = replaceAll(exportContent, id, content);
 	});
 
+	var nbtBlocks = Object.entries(store.nbt);
+	nbtBlocks.forEach(a => {
+		var id = a[0];
+		var content = a[1];
+		exportContent = replaceAll(exportContent, id, `{${content}}`);
+	});
+
+	var locals = Object.entries(global.local);
+	locals.forEach(s => {
+		exportContent = replaceAll(exportContent, "$" + s[0], s[1]);
+	});
+
 	function compress(a) {
 		var lines = a.split("\n");
 		var n = lines.map(a => {
-			return replaceAll(a, "\r", "");
-		}).filter(a => a !== "");
+			return replaceAll(a.trim(), "\r", "");
+		});
 
-		return n;
+		return n.filter(a => a !== "").join("\n");
 	}
 
-	console.log(compress(exportContent));
-
 	return {
-		content: exportContent,
+		content: compress(exportContent),
 		additionalFiles,
 		persist
 	};

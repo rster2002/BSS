@@ -18,6 +18,7 @@ function isNumber(a) {
 module.exports = function(words, config, extra) {
 
 	var { global, genCmd, layer } = extra;
+	// var error = extra.a.error;
 
 	layer++;
 
@@ -30,7 +31,7 @@ module.exports = function(words, config, extra) {
 	var operation = words.join(" ");
 
 	if (operation.includes("&&") && operation.includes("||")) {
-		throw new Error("Both \"&&\" and \"||\" are used inside one if statement");
+		error("Both \"&&\" and \"||\" are used inside one if statement");
 	} else {
 
 		// function for simple operators between a score and a static value
