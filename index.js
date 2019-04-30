@@ -135,34 +135,43 @@ module.exports = function(a) {
 	var blocks = matchRecursive(content, "<<...>>");
 
 	blocks.forEach(a => {
-		let relPath = replaceAll(path.dirname(relativePath), "\\", "/").split("/");
+		// let relPath = relativePath;
+		// relPath = relPath.replace("bss_block-bss_generated-", "p");
+		//
+		// console.log("r", relPath);
+		//
+		// let locationPath =  + replaceAll(path.dirname(relPath), "\\", "-") + "--" + path.basename(relPath, ".mcfunction");
 
-		if (relPath[relPath.length - 1] !== "bss_generated") {
-			relPath.push("bss_generated");
+		let locationPath;
+		let relPath = relativePath;
+		relPath = replaceAll(relPath, "\\", "-");
+
+		if (relPath.includes("bss_generated-")) {
+			relPath = relPath.replace(".mcfunction", "");
+			relPath = relPath.replace("bss_generated-", "bss_generated/");
+			locationPath = relPath;
+		} else {
+			locationPath = "bss_generated/bss_block-" + path.dirname(relPath) + "--" + path.basename(relPath, ".mcfunction");
+		}
+		locationPath = locationPath.replace(".", "root");
+
+		// console.log(locationPath);
+
+		if (persist.blockCount[locationPath] === undefined) {
+			persist.blockCount[locationPath] = 0;
+		} else {
+			persist.blockCount[locationPath] += 1;
 		}
 
-		if (relPath[0] === ".") {
-			relPath.shift();
-		}
+		locationPath = locationPath + persist.blockCount[locationPath];
 
-		relPath.push(path.basename(relativePath, ".mcfunction"));
-
-		relPath = relPath.join("/");
-
-		if (persist.blockCount[relPath] === undefined) {
-			persist.blockCount[relPath] = 0;
-		}
-
-		let id = "bss_block_" + config.blockPrefix + persist.blockCount[relPath];
-		persist.blockCount[relPath]++;
-
-		content = content.replace(`<<${a}>>`, `function ${config.namespace}:${relPath}/${id}`);
-		store.blocks[relPath + "/" + id] = a;
+		content = content.replace(`<<${a}>>`, `function ${config.namespace}:${locationPath}`);
+		store.blocks[locationPath] = a;
 
 		let bxp = "";
 
 		additionalFiles.push({
-			path: `${relPath}/${id}.mcfunction`,
+			path: `${locationPath}.mcfunction`,
 			content: a,
 			root: true
 		});

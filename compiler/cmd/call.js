@@ -71,33 +71,50 @@ module.exports = function(words, config, extra) {
     var content = lines.join("\n");
     var additionalFiles = [];
 
-    var blocks = Object.entries(store.blocks);
-    blocks.forEach(a => {
-        var key = a[0];
-        var body = a[1];
-        // content = content.replace(, `<<${body}>>`);
+    function runBlocksOnContent(c) {
+        var blocks = Object.entries(store.blocks);
+        blocks.forEach(a => {
+            var key = a[0];
+            var body = a[1];
+            // content = content.replace(, `<<${body}>>`);
 
-        key = key.split("/");
-        key.pop();
-        key = key.join("/");
+            console.log([key]);
 
-        if (content.includes(`function ${config.namespace}:${key}`)) {
-            var i = args.map(a => replaceAll(a, " ", "_"));
-            var newPath = `bss_functions/${name}/${key}/${name}-${config.argPrefix}-${i.join("-")}`;
+            if (c.includes(`function ${config.namespace}:${key}`)) {
+                console.log("FOUND");
+                var i = args.map(a => replaceAll(a, " ", "_"));
+                var newPath = key.replace("bss_block", "bss_function");
+                newPath = newPath + "-" + args.join("-");
 
-            content = content.replace(`function ${config.namespace}:${key}`, `function ${config.namespace}:${newPath}`);
+                c = c.replace(`function ${config.namespace}:${key}`, `function ${config.namespace}:${newPath}`);
 
-            fn.arguments.forEach((a, i) => {
-                body = replaceAll(body, "$" + a, args[i]);
-            });
+                fn.arguments.forEach((a, i) => {
+                    body = replaceAll(body, "$" + a, args[i]);
+                });
 
-            additionalFiles.push({
-    			path: `${newPath}.mcfunction`,
-    			content: body,
-    			root: true
-    		});
-        }
-    });
+                if (body.includes("function ")) {
+                    body = runBlocksOnContent(body);
+                }
+
+                console.log(newPath);
+                console.log(body);
+
+                newPath = replaceAll(newPath, "\r", "");
+
+                additionalFiles.push({
+        			path: `${newPath}.mcfunction`,
+        			content: body,
+        			root: true
+        		});
+            }
+        });
+
+        return c;
+    }
+
+    content = runBlocksOnContent(content);
+
+    console.log(additionalFiles);
 
     return {
         content,

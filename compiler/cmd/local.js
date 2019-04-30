@@ -27,6 +27,8 @@ module.exports = function(words, config, extra) {
         var body = words.pop();
         var arguments = words.join(" ");
 
+        body = body.replace("\r", "");
+
         arguments = arguments.replace("(", "").replace(")", "");
         arguments = arguments.split(",");
 
