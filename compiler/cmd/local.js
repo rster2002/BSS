@@ -38,11 +38,13 @@ module.exports = function(words, config, extra) {
             arguments,
             body: store.nbt[body]
         }
+    } else {
+        global.local[key] = value;
     }
 
     var value = words.join(" ");
 
-    global.local[key] = value;
+    // console.log("g", global);
 
     return {
         global

@@ -73,6 +73,46 @@ function replaceAll(input, replace, replaced) {
 	return re;
 }
 
+function runBlocksOnContent(c, extra, newPrefix, trailing, fn) {
+	var { store, config } = extra;
+	var additionalFiles = [];
+	var blocks = Object.entries(store.blocks);
+	var args = fn.values;
+	blocks.forEach(a => {
+		var key = a[0];
+		var body = a[1];
+		// content = content.replace(, `<<${body}>>`);
+
+		if (c.includes(`function ${config.namespace}:${key}`)) {
+			var newPath = key.replace("bss_block", "bss_" + newPrefix);
+			newPath = newPath + "-" + trailing;
+
+			c = c.replace(`function ${config.namespace}:${key}`, `function ${config.namespace}:${newPath}`);
+
+			fn.arguments.forEach((a, i) => {
+				body = replaceAll(body, "$" + a, args[i]);
+			});
+
+			if (body.includes("function ")) {
+				body = runBlocksOnContent(body);
+			}
+
+			newPath = replaceAll(newPath, "\r", "");
+
+			additionalFiles.push({
+				path: `${newPath}.mcfunction`,
+				content: body,
+				root: true
+			});
+		}
+	});
+
+	return {
+		content: c,
+		additionalFiles
+	};
+}
+
 module.exports = function(a) {
 	var { log, warn, error, content, config, persist, relativePath } = a;
 	var lines = [];
@@ -178,12 +218,25 @@ module.exports = function(a) {
 	});
 
 	// Stores the nbt objects into an id
-	var nbts = matchRecursive(content, "{...}");
-	nbts.forEach(a => {
-		var id = genId();
-		store.nbt[id] = a;
-		content = content.replace(`{${a}}`, id);
-	});
+	function matchNbt(c, store) {
+		var nbts = matchRecursive(c, "{...}");
+		// console.log("search", c);
+		// console.log("matched", nbts);
+		nbts.forEach(a => {
+			var id = genId();
+			store.nbt[id] = a;
+			c = c.replace(`{${a}}`, id);
+		});
+
+		return {
+			store,
+			content: c
+		}
+	}
+
+	let i = matchNbt(content, store);
+	content = i.content;
+	store = i.store;
 
 	// Stores the data blocks into an id
 	var dataBlocks = matchRecursive(content, `[...]`);
@@ -191,7 +244,40 @@ module.exports = function(a) {
 		var id = genId();
 		content = content.replace(`[${b}]`, id);
 		store.dataBlocks[id] = `[${b}]`;
-	});
+    });
+    
+    function unpackDatablocks(cmd, store) {
+        var entries = Object.entries(store.dataBlocks);
+        console.log("e", entries);
+        entries.forEach(a => {
+            cmd = replaceAll(cmd, a[0], a[1]);
+        });
+        return cmd;
+    }
+
+    function unpackNbt(cmd, store) {
+        var entries = Object.entries(store.nbt);
+        console.log("e", entries);
+        entries.forEach(a => {
+            cmd = replaceAll(cmd, a[0], `{${a[1]}}`);
+        });
+        return cmd;
+    }
+
+    function unpackBlocks(cmd, store) {
+        var entries = Object.entries(store.blocks);
+        console.log("e", entries);
+        entries.forEach(a => {
+            cmd = replaceAll(cmd, a[0], a[1]);
+        });
+        return cmd;
+    }
+
+    function unpackData(cmd, store) {
+        cmd = unpackDatablocks(cmd, store);
+        cmd = unpackNbt(cmd, store);
+        return cmd;
+    }
 
 	// Removes tabs
 	// content = replaceAll(content, "\t", "");
@@ -232,6 +318,7 @@ module.exports = function(a) {
 					} else {
 						var internalLine = [];
 
+						// console.log(global);
 						var locals = Object.entries(global.local);
 						locals.forEach(s => {
 							a = replaceAll(a, "$" + s[0], s[1]);
@@ -253,7 +340,13 @@ module.exports = function(a) {
 								error,
 								store,
 								runCmd,
-								runLines
+								runLines,
+								runBlocksOnContent,
+                                matchNbt,
+                                unpackDatablocks,
+                                unpackNbt,
+                                unpackBlocks,
+                                unpackData
 							});
 
 							if (typeof r === "string") {
@@ -269,7 +362,7 @@ module.exports = function(a) {
 									internalLine.push(r.content);
 								}
 								if (r.store !== undefined) {
-									global = r.store;
+									store = r.store;
 								}
 								if (r.global !== undefined) {
 									global = r.global;

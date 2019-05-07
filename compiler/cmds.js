@@ -6,6 +6,9 @@ var holding = require("./cmd/holding.js");
 var store = require("./cmd/store.js");
 var local = require("./cmd/local.js");
 var call = require("./cmd/call.js");
+var forCmd = require("./cmd/for.js");
+var optimizedlist = require("./cmd/optimizedlist.js");
+var log = require("./cmd/log.js");
 
 module.exports = {
 	"var": v,
@@ -15,5 +18,8 @@ module.exports = {
 	"store": store,
 	"local": local,
 	"call": call,
+	"for": forCmd,
+	"optimizedlist": optimizedlist,
+	"log": log,
 	"@holding": holding
 }
