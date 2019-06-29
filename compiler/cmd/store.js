@@ -35,7 +35,7 @@ module.exports = function(words, config, extra) {
     var path = storePos.split(".");
     var val = values;
 
-    if (path[0] === "player") {
+    if (path[0] === "self") {
         path.shift();
         let i = path.join();
         val = `execute store result score $selector $objective run data get entity @s ${i}`;

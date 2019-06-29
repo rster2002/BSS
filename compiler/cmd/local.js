@@ -39,10 +39,9 @@ module.exports = function(words, config, extra) {
             body: store.nbt[body]
         }
     } else {
+        var value = words.join(" ");
         global.local[key] = value;
     }
-
-    var value = words.join(" ");
 
     // console.log("g", global);
 

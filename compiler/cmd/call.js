@@ -40,12 +40,18 @@ function replaceAll(input, replace, replaced) {
 module.exports = function(words, config, extra) {
     words.shift();
 
-    var { global, runLines, runBlocksOnContent, store, config, matchNbt } = extra;
+    var { global, persist, runLines, runBlocksOnContent, store, config, matchNbt } = extra;
 
     var temp = words[0].split("(");
     var name = temp[0];
 
-    var fn = global.functions[name];
+    var fn;
+
+    if (global.functions[name] === undefined) {
+        fn = persist.functions[name];
+    } else {
+        fn = global.functions[name];
+    }
 
     words.shift();
 
@@ -68,8 +74,8 @@ module.exports = function(words, config, extra) {
     let tempMatch = matchNbt(body, store);
     body = tempMatch.content;
     store = tempMatch.store;
-    console.log("s", store);
-    console.log("b", body);
+    // console.log("s", store);
+    // console.log("b", body);
 
     var lines = body.split("\n");
 
@@ -78,7 +84,7 @@ module.exports = function(words, config, extra) {
     var content = lines.join("\n");
     var additionalFiles = [];
 
-    var i = args.map(a => replaceAll(a, " ", "_"));
+    var i = args.map(a => replaceAll(replaceAll(a, " ", "_"), "~", "rel"));
     content = runBlocksOnContent(content, extra, "function", i.join("-"), {...fn, values: args});
 
     return {

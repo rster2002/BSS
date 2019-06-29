@@ -114,7 +114,8 @@ function runBlocksOnContent(c, extra, newPrefix, trailing, fn) {
 }
 
 module.exports = function(a) {
-	var { log, warn, error, content, config, persist, relativePath } = a;
+    var { log, warn, error, content, config, persist, relativePath, extension } = a;
+
 	var lines = [];
 	var additionalFiles = [];
 	var newContent = [];
@@ -132,22 +133,20 @@ module.exports = function(a) {
 	};
 
 	// Sets up the persist store
-	if (persist.scoreboards === undefined) {
-		persist.scoreboards = {};
-	}
+	if (persist.bss === undefined) {
+        persist.scoreboards = {};
+        persist.blockCount = {};
+        persist.local = {};
+        persist.functions = {};
+        persist.lastExtension = "mcfunction";
+        persist.bss = "v3.0.0"
+    }
+    
+    if (persist.lastExtension === "js") {
+        extension = "mcfunction";
+    }
 
-	if (persist.blockCount === undefined) {
-		persist.blockCount = {};
-	}
-
-	// if (persist.setupFile === undefined) {
-	// 	persist.setupFile = true;
-	// 	additionalFiles.push({
-	// 		path: "./test.mcfunction",
-	// 		content: "",
-	// 		extendable: true
-	// 	})
-	// }
+    persist.lastExtension = extension;
 
 	// Defaults the config
 	config = Object.assign({
@@ -160,7 +159,7 @@ module.exports = function(a) {
 		argPrefix: "arg"
 	}, config);
 
-	// Function for clearing a file
+	// Function for cleaning a file
 	function clean(arr) {
 		var newArr = [];
 		arr.forEach(a => {
@@ -172,288 +171,316 @@ module.exports = function(a) {
 		return newArr;
 	}
 
-	var blocks = matchRecursive(content, "<<...>>");
+    if (extension === "mcfunction") {
 
-	blocks.forEach(a => {
-		// let relPath = relativePath;
-		// relPath = relPath.replace("bss_block-bss_generated-", "p");
-		//
-		// console.log("r", relPath);
-		//
-		// let locationPath =  + replaceAll(path.dirname(relPath), "\\", "-") + "--" + path.basename(relPath, ".mcfunction");
-
-		let locationPath;
-		let relPath = relativePath;
-		relPath = replaceAll(relPath, "\\", "-");
-
-		if (relPath.includes("bss_generated-")) {
-			relPath = relPath.replace(".mcfunction", "");
-			relPath = relPath.replace("bss_generated-", "bss_generated/");
-			locationPath = relPath;
-		} else {
-			locationPath = "bss_generated/bss_block-" + path.dirname(relPath) + "--" + path.basename(relPath, ".mcfunction");
-		}
-		locationPath = locationPath.replace(".", "root");
-
-		// console.log(locationPath);
-
-		if (persist.blockCount[locationPath] === undefined) {
-			persist.blockCount[locationPath] = 0;
-		} else {
-			persist.blockCount[locationPath] += 1;
-		}
-
-		locationPath = locationPath + persist.blockCount[locationPath];
-
-		content = content.replace(`<<${a}>>`, `function ${config.namespace}:${locationPath}`);
-		store.blocks[locationPath] = a;
-
-		let bxp = "";
-
-		additionalFiles.push({
-			path: `${locationPath}.mcfunction`,
-			content: a,
-			root: true
-		});
-	});
-
-	// Stores the nbt objects into an id
-	function matchNbt(c, store) {
-		var nbts = matchRecursive(c, "{...}");
-		// console.log("search", c);
-		// console.log("matched", nbts);
-		nbts.forEach(a => {
-			var id = genId();
-			store.nbt[id] = a;
-			c = c.replace(`{${a}}`, id);
-		});
-
-		return {
-			store,
-			content: c
-		}
-	}
-
-	let i = matchNbt(content, store);
-	content = i.content;
-	store = i.store;
-
-	// Stores the data blocks into an id
-	var dataBlocks = matchRecursive(content, `[...]`);
-	dataBlocks.forEach(b => {
-		var id = genId();
-		content = content.replace(`[${b}]`, id);
-		store.dataBlocks[id] = `[${b}]`;
-    });
+        var blocks = matchRecursive(content, "<<...>>");
     
-    function unpackDatablocks(cmd, store) {
-        var entries = Object.entries(store.dataBlocks);
-        console.log("e", entries);
-        entries.forEach(a => {
-            cmd = replaceAll(cmd, a[0], a[1]);
+        blocks.forEach(a => {
+
+            let locationPath;
+            let relPath = relativePath;
+            relPath = replaceAll(relPath, "\\", "-");
+    
+            if (relPath.includes("bss_generated-")) {
+                relPath = relPath.replace(".mcfunction", "");
+                relPath = relPath.replace("bss_generated-", "bss_generated/");
+                locationPath = relPath;
+            } else {
+                locationPath = "bss_generated/bss_block-" + path.dirname(relPath) + "--" + path.basename(relPath, ".mcfunction");
+            }
+            locationPath = locationPath.replace(".", "root");
+    
+            // console.log(locationPath);
+    
+            if (persist.blockCount[locationPath] === undefined) {
+                persist.blockCount[locationPath] = 0;
+            } else {
+                persist.blockCount[locationPath] += 1;
+            }
+    
+            locationPath = locationPath + persist.blockCount[locationPath];
+    
+            content = content.replace(`<<${a}>>`, `function ${config.namespace}:${locationPath}`);
+            store.blocks[locationPath] = a;
+    
+            let bxp = "";
+    
+            additionalFiles.push({
+                path: `${locationPath}.mcfunction`,
+                content: a,
+                root: true
+            });
         });
-        return cmd;
-    }
-
-    function unpackNbt(cmd, store) {
-        var entries = Object.entries(store.nbt);
-        console.log("e", entries);
-        entries.forEach(a => {
-            cmd = replaceAll(cmd, a[0], `{${a[1]}}`);
+    
+        // Stores the nbt objects into an id
+        function matchNbt(c, store) {
+            var nbts = matchRecursive(c, "{...}");
+            // console.log("search", c);
+            // console.log("matched", nbts);
+            nbts.forEach(a => {
+                var id = genId();
+                store.nbt[id] = a;
+                c = c.replace(`{${a}}`, id);
+            });
+    
+            return {
+                store,
+                content: c
+            }
+        }
+    
+        let i = matchNbt(content, store);
+        content = i.content;
+        store = i.store;
+    
+        // Stores the data blocks into an id
+        var dataBlocks = matchRecursive(content, `[...]`);
+        dataBlocks.forEach(b => {
+            var id = genId();
+            content = content.replace(`[${b}]`, id);
+            store.dataBlocks[id] = `[${b}]`;
         });
-        return cmd;
-    }
-
-    function unpackBlocks(cmd, store) {
-        var entries = Object.entries(store.blocks);
-        console.log("e", entries);
-        entries.forEach(a => {
-            cmd = replaceAll(cmd, a[0], a[1]);
+        
+        function unpackDatablocks(cmd, store) {
+            var entries = Object.entries(store.dataBlocks);
+            // console.log("e", entries);
+            entries.forEach(a => {
+                cmd = replaceAll(cmd, a[0], a[1]);
+            });
+            return cmd;
+        }
+    
+        function unpackNbt(cmd, store) {
+            var entries = Object.entries(store.nbt);
+            // console.log("e", entries);
+            entries.forEach(a => {
+                cmd = replaceAll(cmd, a[0], `{${a[1]}}`);
+            });
+            return cmd;
+        }
+    
+        function unpackBlocks(cmd, store) {
+            var entries = Object.entries(store.blocks);
+            // console.log("e", entries);
+            entries.forEach(a => {
+                cmd = replaceAll(cmd, a[0], a[1]);
+            });
+            return cmd;
+        }
+    
+        function unpackData(cmd, store) {
+            cmd = unpackDatablocks(cmd, store);
+            cmd = unpackNbt(cmd, store);
+            return cmd;
+        }
+    
+        // Removes tabs
+        // content = replaceAll(content, "\t", "");
+        // console.log(content.trim(), content.split("\t"));
+    
+        // Turns arrows into 'run'
+        content = replaceAll(content, "=>", "run");
+    
+        lines = content.split("\n");
+    
+        function runLines(lines) {
+    
+            var newContent = [];
+    
+            // For every line
+            lines.forEach(line => {
+    
+                var newLine = [];
+                var context = {
+                    front: ""
+                }
+    
+                // Resolves the local stored variables first
+                var locals = Object.entries(global.local);
+                locals.forEach(s => {
+                    line = replaceAll(line, "$" + s[0], s[1]);
+                });
+    
+                // Resolves the local stored variables first
+                var globals = Object.entries(persist.local);
+                globals.forEach(s => {
+                    line = replaceAll(line, "$" + s[0], s[1]);
+                });
+    
+                // Finds every command
+                var commands = line.split(" run ");
+                var callTrace = 0;
+                var newLine = true;
+    
+                function genCmd(layer) {
+                    var internalCmds = commands;
+                    callTrace += 1;
+                    internalCmds = internalCmds.slice(layer, Infinity);
+                    var a = internalCmds[0];
+    
+                    function runCmd(a) {
+                        if (a === undefined) {
+                            warn("Unexpected end: Expected a new command but instead got nothing");
+                            return "";
+                        } else {
+                            var internalLine = [];
+    
+                            // Makes an array of words
+                            var words = clean(a.split(" "));
+    
+                            // Checks if the word is a special command
+                            if (cmds[words[0]] !== undefined) {
+    
+                                // Gets the output from the command
+                                let r = cmds[words[0]](words, config, {
+                                    global,
+                                    config,
+                                    persist,
+                                    genCmd,
+                                    layer,
+                                    error,
+                                    store,
+                                    runCmd,
+                                    runLines,
+                                    runBlocksOnContent,
+                                    matchNbt,
+                                    unpackDatablocks,
+                                    unpackNbt,
+                                    unpackBlocks,
+                                    unpackData
+                                });
+    
+                                if (typeof r === "string") {
+                                    internalLine.push(r);
+                                } else if (typeof r === "object") {
+                                    if (r.inFront !== undefined) {
+                                        inFront = [...inFront, ...r.inFront];
+                                    }
+                                    if (r.atBack !== undefined) {
+                                        atBack = [...atBack, ...r.atBack];
+                                    }
+                                    if (r.content !== undefined) {
+                                        internalLine.push(r.content);
+                                    }
+                                    if (r.store !== undefined) {
+                                        store = r.store;
+                                    }
+                                    if (r.global !== undefined) {
+                                        global = r.global;
+                                    }
+                                    if (r.additionalFiles !== undefined) {
+                                        additionalFiles = [...additionalFiles, ...r.additionalFiles];
+                                    }
+    
+                                    if (r.persist !== undefined) {
+                                        persist = r.persist;
+                                    }
+    
+                                    if (r.emit !== undefined) {
+                                        var entr = Object.entries(r.emit);
+    
+                                        entr.forEach(em => {
+                                            store = em(store);
+                                        });
+                                    }
+    
+                                }
+                            } else {
+                                // Returns the whole line
+                                let c = commands;
+                                c = c.slice(layer, Infinity);
+                                internalLine.push(c.join(" run "));
+                            }
+    
+                            if (layer === 0) {
+                                newLine = false;
+                                return internalLine[0];
+                            } else {
+                                return "run " + internalLine[0];
+                            }
+                        }
+                    }
+    
+                    return runCmd(a);
+                }
+    
+                newContent.push(genCmd(0));
+            });
+    
+            return newContent;
+        }
+    
+        newContent = runLines(lines);
+    
+        var exportContent = newContent.join("\n");
+    
+        if (inFront.length > 0) {
+            exportContent = inFront.join("\n") + "\n" + exportContent;
+        }
+    
+        if (atBack.length > 0) {
+            exportContent = atBack.join("\n") + "\n" + exportContent;
+        }
+    
+        var locals = Object.entries(global.local);
+        locals.forEach(s => {
+            exportContent = replaceAll(exportContent, "$" + s[0], s[1]);
         });
-        return cmd;
+    
+        // Recovers the data blocks
+        var dataBlocksEntries = Object.entries(store.dataBlocks);
+        dataBlocksEntries.forEach(a => {
+            var id = a[0];
+            var content = a[1];
+            exportContent = replaceAll(exportContent, id, content);
+        });
+    
+        var nbtBlocks = Object.entries(store.nbt);
+        nbtBlocks.forEach(a => {
+            var id = a[0];
+            var content = a[1];
+            exportContent = replaceAll(exportContent, id, `{${content}}`);
+        });
+    
+        function compress(a) {
+            var lines = a.split("\n");
+            var n = lines.map(a => {
+                return replaceAll(a.trim(), "\r", "");
+            });
+    
+            return n.filter(a => a !== "").join("\n");
+        }
     }
 
-    function unpackData(cmd, store) {
-        cmd = unpackDatablocks(cmd, store);
-        cmd = unpackNbt(cmd, store);
-        return cmd;
+    var jsBaseName;
+
+    // Resolves js files
+    if (extension === "js") {
+        jsBaseName = path.basename(relativePath, ".js");
+        eval(content);
+        content = compile({...config, ...persist});
     }
 
-	// Removes tabs
-	// content = replaceAll(content, "\t", "");
-	// console.log(content.trim(), content.split("\t"));
+    if (extension === "mcfunction") {
+        return {
+            content: compress(exportContent),
+            additionalFiles,
+            persist,
+            tags: ["mcfunction", "bss", "bss-mcfunction"]
+        };
+    } else if (extension === "js") {
+        return {
+            content: "// This file is here because backbacker doesn't support changing extensions yet",
+            additionalFiles: [
+                {
+                    path: `./${jsBaseName}.mcfunction`,
+                    content: content
+                }
+            ],
+            persist
+        }
+    }
 
-	// Turns arrows into 'run'
-	content = replaceAll(content, "=>", "run");
-
-	lines = content.split("\n");
-
-	function runLines(lines) {
-
-		var newContent = [];
-
-		// For every line
-		lines.forEach(line => {
-
-			var newLine = [];
-			var context = {
-				front: ""
-			}
-
-			// Finds every command
-			var commands = line.split(" run ");
-			var callTrace = 0;
-			var newLine = true;
-
-			function genCmd(layer) {
-				var internalCmds = commands;
-				callTrace += 1;
-				internalCmds = internalCmds.slice(layer, Infinity);
-				var a = internalCmds[0];
-
-				function runCmd(a) {
-					if (a === undefined) {
-						warn("Unexpected end: Expected a new command but instead got nothing");
-						return "";
-					} else {
-						var internalLine = [];
-
-						// console.log(global);
-						var locals = Object.entries(global.local);
-						locals.forEach(s => {
-							a = replaceAll(a, "$" + s[0], s[1]);
-						});
-
-						// Makes an array of words
-						var words = clean(a.split(" "));
-
-						// Checks if the word is a special command
-						if (cmds[words[0]] !== undefined) {
-
-							// Gets the output from the command
-							let r = cmds[words[0]](words, config, {
-								global,
-								config,
-								persist,
-								genCmd,
-								layer,
-								error,
-								store,
-								runCmd,
-								runLines,
-								runBlocksOnContent,
-                                matchNbt,
-                                unpackDatablocks,
-                                unpackNbt,
-                                unpackBlocks,
-                                unpackData
-							});
-
-							if (typeof r === "string") {
-								internalLine.push(r);
-							} else if (typeof r === "object") {
-								if (r.inFront !== undefined) {
-									inFront = [...inFront, ...r.inFront];
-								}
-								if (r.atBack !== undefined) {
-									atBack = [...atBack, ...r.atBack];
-								}
-								if (r.content !== undefined) {
-									internalLine.push(r.content);
-								}
-								if (r.store !== undefined) {
-									store = r.store;
-								}
-								if (r.global !== undefined) {
-									global = r.global;
-								}
-								if (r.additionalFiles !== undefined) {
-									additionalFiles = [...additionalFiles, ...r.additionalFiles];
-								}
-
-								if (r.persist !== undefined) {
-									persist = r.persist;
-								}
-
-								if (r.emit !== undefined) {
-									var entr = Object.entries(r.emit);
-
-									entr.forEach(em => {
-										store = em(store);
-									});
-								}
-
-							}
-						} else {
-							let c = commands;
-							c = c.slice(layer, Infinity);
-							internalLine.push(c.join(" run "));
-						}
-
-						if (layer === 0) {
-							newLine = false;
-							return internalLine[0];
-						} else {
-							return "run " + internalLine[0];
-						}
-					}
-				}
-
-				return runCmd(a);
-			}
-
-			newContent.push(genCmd(0));
-		});
-
-		return newContent;
-	}
-
-	newContent = runLines(lines);
-
-	var exportContent = newContent.join("\n");
-
-	if (inFront.length > 0) {
-		exportContent = inFront.join("\n") + "\n" + exportContent;
-	}
-
-	if (atBack.length > 0) {
-		exportContent = atBack.join("\n") + "\n" + exportContent;
-	}
-
-	// Recovers the data blocks
-	var dataBlocksEntries = Object.entries(store.dataBlocks);
-	dataBlocksEntries.forEach(a => {
-		var id = a[0];
-		var content = a[1];
-		exportContent = replaceAll(exportContent, id, content);
-	});
-
-	var nbtBlocks = Object.entries(store.nbt);
-	nbtBlocks.forEach(a => {
-		var id = a[0];
-		var content = a[1];
-		exportContent = replaceAll(exportContent, id, `{${content}}`);
-	});
-
-	var locals = Object.entries(global.local);
-	locals.forEach(s => {
-		exportContent = replaceAll(exportContent, "$" + s[0], s[1]);
-	});
-
-	function compress(a) {
-		var lines = a.split("\n");
-		var n = lines.map(a => {
-			return replaceAll(a.trim(), "\r", "");
-		});
-
-		return n.filter(a => a !== "").join("\n");
-	}
-
-	return {
-		content: compress(exportContent),
-		additionalFiles,
-		persist
-	};
 }
 
 // {
