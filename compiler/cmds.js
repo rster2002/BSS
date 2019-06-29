@@ -9,6 +9,9 @@ var call = require("./cmd/call.js");
 var forCmd = require("./cmd/for.js");
 var optimizedlist = require("./cmd/optimizedlist.js");
 var log = require("./cmd/log.js");
+var data = require("./cmd/data.js");
+var compare = require("./cmd/compare.js");
+var compiler = require("./cmd/compiler.js");
 
 module.exports = {
 	"var": v,
@@ -21,5 +24,8 @@ module.exports = {
 	"for": forCmd,
 	"optimizedlist": optimizedlist,
 	"log": log,
-	"@holding": holding
+    "holding": holding,
+    "data": data,
+    "compare": compare,
+    "compiler": compiler
 }

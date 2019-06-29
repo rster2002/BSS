@@ -1,0 +1,457 @@
+Separate	 Stone	stone	 Stone	stone
+ Granite	granite
+ Polished Granite	polished_granite
+ Diorite	diorite
+ Polished Diorite	polished_diorite
+ Andesite	andesite
+ Polished Andesite	polished_andesite
+Rename	 Grass Block	grass	 Grass Block	grass_block
+Separate	 Dirt	dirt	 Dirt	dirt
+ Coarse Dirt	coarse_dirt
+ Podzol	podzol
+Separate	 Planks	planks	 Oak Planks	oak_planks
+ Spruce Planks	spruce_planks
+ Birch Planks	birch_planks
+ Jungle Planks	jungle_planks
+ Acacia Planks	acacia_planks
+ Dark Oak Planks	dark_oak_planks
+Separate	 Sapling	sapling	 Oak Sapling	oak_sapling
+ Spruce Sapling	spruce_sapling
+ Birch Sapling	birch_sapling
+ Jungle Sapling	jungle_sapling
+ Acacia Sapling	acacia_sapling
+ Dark Oak Sapling	dark_oak_sapling
+Separate	 Sand	sand	 Sand	sand
+ Red Sand	red_sand
+Separate	 Log	log	 Oak Log	oak_log
+ Spruce Log	spruce_log
+ Birch Log	birch_log
+ Jungle Log	jungle_log
+ Oak Wood	oak_wood
+ Spruce Wood	spruce_wood
+ Birch Wood	birch_wood
+ Jungle Wood	jungle_wood
+Separate	 Log (2)	log2	 Acacia Log	acacia_log
+ Dark Oak Log	dark_oak_log
+ Acacia Wood	acacia_wood
+ Dark Oak Wood	dark_oak_wood
+Separate	 Leaves	leaves	 Oak Leaves	oak_leaves
+ Spruce Leaves	spruce_leaves
+ Birch Leaves	birch_leaves
+ Jungle Leaves	jungle_leaves
+Separate	 Leaves (2)	leaves2	 Acacia Leaves	acacia_leaves
+ Dark Oak Leaves	dark_oak_leaves
+Separate	 Sponge	sponge	 Sponge	sponge
+ Wet Sponge	wet_sponge
+Separate	 Sandstone	sandstone	 Sandstone	sandstone
+ Chiseled Sandstone	chiseled_sandstone
+ Cut Sandstone	cut_sandstone
+Rename	 Note Block	noteblock	 Note Block	note_block
+Rename	 Powered Rail	golden_rail	 Powered Rail	powered_rail
+Rename	 Cobweb	web	 Cobweb	cobweb
+Separate	 Grass	tallgrass	 Dead Bush	dead_bush
+ Grass	grass
+ Fern	fern
+Rename	 Dead Bush	deadbush	 Dead Bush	dead_bush
+Rename	 Moving Piston [ids note 1]	piston_extension	 Moving Piston [ids note 1]	moving_piston
+Separate	 Wool	wool	 White Wool	white_wool
+ Orange Wool	orange_wool
+ Magenta Wool	magenta_wool
+ Light Blue Wool	light_blue_wool
+ Yellow Wool	yellow_wool
+ Lime Wool	lime_wool
+ Pink Wool	pink_wool
+ Gray Wool	gray_wool
+ Light Gray Wool	light_gray_wool
+ Cyan Wool	cyan_wool
+ Purple Wool	purple_wool
+ Blue Wool	blue_wool
+ Brown Wool	brown_wool
+ Green Wool	green_wool
+ Red Wool	red_wool
+ Black Wool	black_wool
+Rename	 Dandelion	yellow_flower	 Dandelion	dandelion
+Separate	 Flower	red_flower	 Poppy	poppy
+ Blue Orchid	blue_orchid
+ Allium	allium
+ Azure Bluet	azure_bluet
+ Red Tulip	red_tulip
+ Orange Tulip	orange_tulip
+ White Tulip	white_tulip
+ Pink Tulip	pink_tulip
+ Oxeye Daisy	oxeye_daisy
+Separate and merge	 Double Wooden Slab [ids note 1]	double_wooden_slab	 Oak Slab	oak_slab
+ Spruce Slab	spruce_slab
+ Birch Slab	birch_slab
+ Wooden Slab	wooden_slab	 Jungle Slab	jungle_slab
+ Acacia Slab	acacia_slab
+ Dark Oak Slab	dark_oak_slab
+Separate and merge	 Double Stone Slab [ids note 1]	double_stone_slab	 Stone Slab	stone_slab
+ Sandstone Slab	sandstone_slab
+ Petrified Oak Slab	petrified_oak_slab
+ Cobblestone Slab	cobblestone_slab
+ Brick Slab	brick_slab
+ Stone Slab	stone_slab	 Stone Brick Slab	stone_brick_slab
+ Nether Brick Slab	nether_brick_slab
+ Quartz Slab	quartz_slab
+ Smooth Stone	smooth_stone
+ Smooth Sandstone	smooth_sandstone
+ Smooth Quartz	smooth_quartz
+Separate and merge	 Double Red Sandstone Slab [ids note 1]	double_stone_slab2	 Red Sandstone Slab	red_sandstone_slab
+ Red Sandstone Slab	stone_slab2	 Smooth Red Sandstone	smooth_red_sandstone
+Merge	 Double Purpur Slab [ids note 1]	double_purpur_slab	 Purpur Slab	purpur_slab
+ Purpur Slab	purpur_slab
+Rename	 Bricks	brick_block	 Bricks	bricks
+Rename	 Spawner	mob_spawner	 Spawner	spawner
+Rename	 Nether Portal	portal	 Nether Portal	nether_portal
+Separate	 Torch	torch	 Wall Torch [ids note 1]	wall_torch
+ Torch	torch
+Merge	 Furnace	furnace	 Furnace	furnace
+ Lit Furnace [ids note 1]	lit_furnace
+Rename	 Cobblestone Stairs	stone_stairs	 Cobblestone Stairs	cobblestone_stairs
+Rename	 Oak Pressure Plate	wooden_pressure_plate	 Oak Pressure Plate	oak_pressure_plate
+Merge	 Redstone Ore	redstone_ore	 Redstone Ore	redstone_ore
+ Lit Redstone Ore [ids note 1]	lit_redstone_ore
+Separate and merge	 Unlit Redstone Torch [ids note 1]	unlit_redstone_torch	 Redstone Wall Torch [ids note 1]	redstone_wall_torch
+ Redstone Torch	redstone_torch	 Redstone Torch	redstone_torch
+Rename	 Snow	snow_layer	 Snow	snow
+Rename	 Snow Block	snow	 Snow Block	snow_block
+Rename	 Oak Fence	fence	 Oak Fence	oak_fence
+Rename	 Carved Pumpkin	pumpkin	 Carved Pumpkin	carved_pumpkin
+Rename	 Jack o'Lantern	lit_pumpkin	 Jack o'Lantern	jack_o_lantern
+Rename	 Oak Trapdoor	trapdoor	 Oak Trapdoor	oak_trapdoor
+Separate	 Infested Block	monster_egg	 Infested Stone	infested_stone
+ Infested Cobblestone	infested_cobblestone
+ Infested Stone Bricks	infested_stone_bricks
+ Infested Mossy Stone Bricks	infested_mossy_stone_bricks
+ Infested Cracked Stone Bricks	infested_cracked_stone_bricks
+ Infested Chiseled Stone Bricks	infested_chiseled_stone_bricks
+Separate	 Stone Bricks	stonebrick	 Stone Bricks	stone_bricks
+ Mossy Stone Bricks	mossy_stone_bricks
+ Cracked Stone Bricks	cracked_stone_bricks
+ Chiseled Stone Bricks	chiseled_stone_bricks
+Separate and merge	 Brown Mushroom Block	brown_mushroom_block	 Brown Mushroom Block	brown_mushroom_block
+ Mushroom Stem	mushroom_stem
+ Red Mushroom Block	red_mushroom_block
+ Red Mushroom Block	red_mushroom_block
+Rename	 Melon	melon_block	 Melon	melon
+Rename	 Oak Fence Gate	fence_gate	 Oak Fence Gate	oak_fence_gate
+Rename	 Lily Pad	waterlily	 Lily Pad	lily_pad
+Rename	 Nether Bricks	nether_brick	 Nether Bricks	nether_bricks
+Rename	 End Stone Bricks	end_bricks	 End Stone Bricks	end_stone_bricks
+Merge	 Redstone Lamp	redstone_lamp	 Redstone Lamp	redstone_lamp
+ Lit Redstone Lamp [ids note 1]	lit_redstone_lamp
+Separate	 Cobblestone Wall	cobblestone_wall	 Cobblestone Wall	cobblestone_wall
+ Mossy Cobblestone Wall	mossy_cobblestone_wall
+Rename	 Oak Button	wooden_button	 Oak Button	oak_button
+Separate	 Anvil	anvil	 Anvil	anvil
+ Chipped Anvil	chipped_anvil
+ Damaged Anvil	damaged_anvil
+Merge	 Daylight Detector	daylight_detector	 Daylight Detector	daylight_detector
+ Inverted Daylight Detector [ids note 1]	daylight_detector_inverted
+Rename	 Nether Quartz Ore	quartz_ore	 Nether Quartz Ore	nether_quartz_ore
+Separate	 Block of Quartz	quartz_block	 Block of Quartz	quartz_block
+ Chiseled Quartz Block	chiseled_quartz_block
+ Quartz Pillar	quartz_pillar
+Separate	 Colored Terracotta	stained_hardened_clay	 White Terracotta	white_terracotta
+ Orange Terracotta	orange_terracotta
+ Magenta Terracotta	magenta_terracotta
+ Light Blue Terracotta	light_blue_terracotta
+ Yellow Terracotta	yellow_terracotta
+ Lime Terracotta	lime_terracotta
+ Pink Terracotta	pink_terracotta
+ Gray Terracotta	gray_terracotta
+ Light Gray Terracotta	light_gray_terracotta
+ Cyan Terracotta	cyan_terracotta
+ Purple Terracotta	purple_terracotta
+ Blue Terracotta	blue_terracotta
+ Brown Terracotta	brown_terracotta
+ Green Terracotta	green_terracotta
+ Red Terracotta	red_terracotta
+ Black Terracotta	black_terracotta
+Separate	 Carpet	carpet	 White Carpet	white_carpet
+ Orange Carpet	orange_carpet
+ Magenta Carpet	magenta_carpet
+ Light Blue Carpet	light_blue_carpet
+ Yellow Carpet	yellow_carpet
+ Lime Carpet	lime_carpet
+ Pink Carpet	pink_carpet
+ Gray Carpet	gray_carpet
+ Light Gray Carpet	light_gray_carpet
+ Cyan Carpet	cyan_carpet
+ Purple Carpet	purple_carpet
+ Blue Carpet	blue_carpet
+ Brown Carpet	brown_carpet
+ Green Carpet	green_carpet
+ Red Carpet	red_carpet
+ Black Carpet	black_carpet
+Rename	 Terracotta	hardened_clay	 Terracotta	terracotta
+Rename	 Slime Block	slime	 Slime Block	slime_block
+Separate	 Double Plant	double_plant	 Sunflower	sunflower
+ Lilac	lilac
+ Double Tallgrass	tall_grass
+ Large Fern	large_fern
+ Rose Bush	rose_bush
+ Peony	peony
+Separate	 Stained Glass	stained_glass	 White Stained Glass	white_stained_glass
+ Orange Stained Glass	orange_stained_glass
+ Magenta Stained Glass	magenta_stained_glass
+ Light Blue Stained Glass	light_blue_stained_glass
+ Yellow Stained Glass	yellow_stained_glass
+ Lime Stained Glass	lime_stained_glass
+ Pink Stained Glass	pink_stained_glass
+ Gray Stained Glass	gray_stained_glass
+ Light Gray Stained Glass	light_gray_stained_glass
+ Cyan Stained Glass	cyan_stained_glass
+ Purple Stained Glass	purple_stained_glass
+ Blue Stained Glass	blue_stained_glass
+ Brown Stained Glass	brown_stained_glass
+ Green Stained Glass	green_stained_glass
+ Red Stained Glass	red_stained_glass
+ Black Stained Glass	black_stained_glass
+Separate	 Stained Glass Pane	stained_glass_pane	 White Stained Glass Pane	white_stained_glass_pane
+ Orange Stained Glass Pane	orange_stained_glass_pane
+ Magenta Stained Glass Pane	magenta_stained_glass_pane
+ Light Blue Stained Glass Pane	light_blue_stained_glass_pane
+ Yellow Stained Glass Pane	yellow_stained_glass_pane
+ Lime Stained Glass Pane	lime_stained_glass_pane
+ Pink Stained Glass Pane	pink_stained_glass_pane
+ Gray Stained Glass Pane	gray_stained_glass_pane
+ Light Gray Stained Glass Pane	light_gray_stained_glass_pane
+ Cyan Stained Glass Pane	cyan_stained_glass_pane
+ Purple Stained Glass Pane	purple_stained_glass_pane
+ Blue Stained Glass Pane	blue_stained_glass_pane
+ Brown Stained Glass Pane	brown_stained_glass_pane
+ Green Stained Glass Pane	green_stained_glass_pane
+ Red Stained Glass Pane	red_stained_glass_pane
+ Black Stained Glass Pane	black_stained_glass_pane
+Separate	 Prismarine	prismarine	 Prismarine	prismarine
+ Prismarine Bricks	prismarine_bricks
+ Dark Prismarine	dark_prismarine
+Separate	 Red Sandstone	red_sandstone	 Red Sandstone	red_sandstone
+ Chiseled Red Sandstone	chiseled_red_sandstone
+ Cut Red Sandstone	cut_red_sandstone
+Rename	 Magma Block	magma	 Magma Block	magma_block
+Rename	 Red Nether Bricks	red_nether_brick	 Red Nether Bricks	red_nether_bricks
+Rename	 Light Gray Shulker Box	silver_shulker_box	 Light Gray Shulker Box	light_gray_shulker_box
+Rename	 Light Gray Glazed Terracotta	silver_glazed_terracotta	 Light Gray Glazed Terracotta	light_gray_glazed_terracotta
+Separate	 Concrete	concrete	 White Concrete	white_concrete
+ Orange Concrete	orange_concrete
+ Magenta Concrete	magenta_concrete
+ Light Blue Concrete	light_blue_concrete
+ Yellow Concrete	yellow_concrete
+ Lime Concrete	lime_concrete
+ Pink Concrete	pink_concrete
+ Gray Concrete	gray_concrete
+ Light Gray Concrete	light_gray_concrete
+ Cyan Concrete	cyan_concrete
+ Purple Concrete	purple_concrete
+ Blue Concrete	blue_concrete
+ Brown Concrete	brown_concrete
+ Green Concrete	green_concrete
+ Red Concrete	red_concrete
+ Black Concrete	black_concrete
+Separate	 Concrete Powder	concrete_powder	 White Concrete Powder	white_concrete_powder
+ Orange Concrete Powder	orange_concrete_powder
+ Magenta Concrete Powder	magenta_concrete_powder
+ Light Blue Concrete Powder	light_blue_concrete_powder
+ Yellow Concrete Powder	yellow_concrete_powder
+ Lime Concrete Powder	lime_concrete_powder
+ Pink Concrete Powder	pink_concrete_powder
+ Gray Concrete Powder	gray_concrete_powder
+ Light Gray Concrete Powder	light_gray_concrete_powder
+ Cyan Concrete Powder	cyan_concrete_powder
+ Purple Concrete Powder	purple_concrete_powder
+ Blue Concrete Powder	blue_concrete_powder
+ Brown Concrete Powder	brown_concrete_powder
+ Green Concrete Powder	green_concrete_powder
+ Red Concrete Powder	red_concrete_powder
+ Black Concrete Powder	black_concrete_powder
+Rename	 Oak Door	wooden_door	 Oak Door	oak_door
+Merge	 Unpowered Redstone Repeater [ids note 1]	unpowered_repeater	 Redstone Repeater	repeater
+ Powered Redstone Repeater [ids note 1]	powered_repeater
+ Redstone Repeater	repeater
+Merge	 Unpowered Redstone Comparator [ids note 1]	unpowered_comparator	 Redstone Comparator	comparator
+ Powered Redstone Comparator [ids note 1]	powered_comparator
+ Redstone Comparator	comparator
+Separate	 Coal	coal	 Coal	coal
+ Charcoal	charcoal
+Separate	 Golden Apple	golden_apple	 Golden Apple	golden_apple
+ Enchanted Golden Apple	enchanted_golden_apple
+Merge	 Standing Sign [ids note 1]	standing_sign	 Sign	sign
+ Sign	sign
+Merge	 Water [ids note 1]	water	 Water [ids note 1]	water
+ Flowing Water [ids note 1]	flowing_water
+Merge	 Lava [ids note 1]	lava	 Lava [ids note 1]	lava
+ Flowing Lava [ids note 1]	flowing_lava
+Rename	 Oak Boat	boat	 Oak Boat	oak_boat
+Rename	 Sugar cane	reeds	 Sugar cane	sugar_cane
+Separate	 Raw Fish	fish	 Raw Cod	cod
+ Raw Salmon	salmon
+ Tropical Fish	tropical_fish
+ Pufferfish	pufferfish
+Separate	 Cooked Fish	cooked_fish	 Cooked Cod	cooked_cod
+ Cooked Salmon	cooked_salmon
+Separate	 Dye	dye	 Bone Meal	bone_meal
+ Orange Dye	orange_dye
+ Magenta Dye	magenta_dye
+ Light Blue Dye	light_blue_dye
+ Dandelion Yellow	dandelion_yellow
+ Lime Dye	lime_dye
+ Pink Dye	pink_dye
+ Gray Dye	gray_dye
+ Light Gray Dye	light_gray_dye
+ Cyan Dye	cyan_dye
+ Purple Dye	purple_dye
+ Lapis Lazuli	lapis_lazuli
+ Cocoa Beans	cocoa_beans
+ Cactus Green	cactus_green
+ Rose Red	rose_red
+ Ink Sac	ink_sac
+Separate	 Bed	bed	 White Bed	white_bed
+ Orange Bed	orange_bed
+ Magenta Bed	magenta_bed
+ Light Blue Bed	light_blue_bed
+ Yellow Bed	yellow_bed
+ Lime Bed	lime_bed
+ Pink Bed	pink_bed
+ Gray Bed	gray_bed
+ Light Gray Bed	light_gray_bed
+ Cyan Bed	cyan_bed
+ Purple Bed	purple_bed
+ Blue Bed	blue_bed
+ Brown Bed	brown_bed
+ Green Bed	green_bed
+ Red Bed	red_bed
+ Black Bed	black_bed
+Rename	 Melon Slice	melon	 Melon Slice	melon_slice
+Separate	 Pumpkin Stem [ids note 1]	pumpkin_stem	 Pumpkin Stem [ids note 1]	pumpkin_stem
+ Attached Pumpkin Stem [ids note 1]	attached_pumpkin_stem
+Separate	 Melon Stem [ids note 1]	melon_stem	 Melon Stem [ids note 1]	melon_stem
+ Attached Melon Stem [ids note 1]	attached_melon_stem
+Rename	 Glistering Melon Slice	speckled_melon	 Glistering Melon Slice	glistering_melon_slice
+Separate	 Spawn Egg	spawn_egg	 Bat Spawn Egg	bat_spawn_egg
+ Blaze Spawn Egg	blaze_spawn_egg
+ Cave Spider Spawn Egg	cave_spider_spawn_egg
+ Chicken Spawn Egg	chicken_spawn_egg
+ Cow Spawn Egg	cow_spawn_egg
+ Creeper Spawn Egg	creeper_spawn_egg
+ Donkey Spawn Egg	donkey_spawn_egg
+ Elder Guardian Spawn Egg	elder_guardian_spawn_egg
+ Enderman Spawn Egg	enderman_spawn_egg
+ Endermite Spawn Egg	endermite_spawn_egg
+ Evoker Spawn Egg	evoker_spawn_egg
+ Ghast Spawn Egg	ghast_spawn_egg
+ Guardian Spawn Egg	guardian_spawn_egg
+ Horse Spawn Egg	horse_spawn_egg
+ Husk Spawn Egg	husk_spawn_egg
+ Llama Spawn Egg	llama_spawn_egg
+ Magma Cube Spawn Egg	magma_cube_spawn_egg
+ Mooshroom Spawn Egg	mooshroom_spawn_egg
+ Mule Spawn Egg	mule_spawn_egg
+ Ocelot Spawn Egg	ocelot_spawn_egg
+ Parrot Spawn Egg	parrot_spawn_egg
+ Pig Spawn Egg	pig_spawn_egg
+ Polar Bear Spawn Egg	polar_bear_spawn_egg
+ Rabbit Spawn Egg	rabbit_spawn_egg
+ Sheep Spawn Egg	sheep_spawn_egg
+ Shulker Spawn Egg	shulker_spawn_egg
+ Silverfish Spawn Egg	silverfish_spawn_egg
+ Skeleton Spawn Egg	skeleton_spawn_egg
+ Skeleton Horse Spawn Egg	skeleton_horse_spawn_egg
+ Slime Spawn Egg	slime_spawn_egg
+ Spider Spawn Egg	spider_spawn_egg
+ Squid Spawn Egg	squid_spawn_egg
+ Stray Spawn Egg	stray_spawn_egg
+ Vex Spawn Egg	vex_spawn_egg
+ Villager Spawn Egg	villager_spawn_egg
+ Vindicator Spawn Egg	vindicator_spawn_egg
+ Witch Spawn Egg	witch_spawn_egg
+ Wither Skeleton Spawn Egg	wither_skeleton_spawn_egg
+ Wolf Spawn Egg	wolf_spawn_egg
+ Zombie Spawn Egg	zombie_spawn_egg
+ Zombie Horse Spawn Egg	zombie_horse_spawn_egg
+ Zombie Pigman Spawn Egg	zombie_pigman_spawn_egg
+ Zombie Villager Spawn Egg	zombie_villager_spawn_egg
+Separate	 Flower Pot	flower_pot	 Flower Pot	flower_pot
+ Potted Poppy [ids note 1]	potted_poppy
+ Potted Dandelion [ids note 1]	potted_dandelion
+ Potted Oak Sapling [ids note 1]	potted_oak_sapling
+ Potted Spruce Sapling [ids note 1]	potted_spruce_sapling
+ Potted Birch Sapling [ids note 1]	potted_birch_sapling
+ Potted Jungle Sapling [ids note 1]	potted_jungle_sapling
+ Potted Red Mushroom [ids note 1]	potted_red_mushroom
+ Potted Brown Mushroom [ids note 1]	potted_brown_mushroom
+ Potted Cactus [ids note 1]	potted_cactus
+ Potted Dead Bush [ids note 1]	potted_dead_bush
+ Potted Fern [ids note 1]	potted_fern
+ Potted Acacia Sapling [ids note 1]	potted_acacia_sapling
+ Potted Dark Oak Sapling [ids note 1]	potted_dark_oak_sapling
+ Potted Blue Orchid [ids note 1]	potted_blue_orchid
+ Potted Allium [ids note 1]	potted_allium
+ Potted Azure Bluet [ids note 1]	potted_azure_bluet
+ Potted Red Tulip [ids note 1]	potted_red_tulip
+ Potted Orange Tulip [ids note 1]	potted_orange_tulip
+ Potted White Tulip [ids note 1]	potted_white_tulip
+ Potted Pink Tulip [ids note 1]	potted_pink_tulip
+ Potted Oxeye Daisy [ids note 1]	potted_oxeye_daisy
+Separate	 Head	skull	 Skeleton Skull	skeleton_skull
+ Skeleton Wall Skull [ids note 1]	skeleton_wall_skull
+ Wither Skeleton Skull	wither_skeleton_skull
+ Wither Skeleton Wall Skull [ids note 1]	wither_skeleton_wall_skull
+ Zombie Head	zombie_head
+ Zombie Wall Head [ids note 1]	zombie_wall_head
+ Player Head	player_head
+ Player Wall Head [ids note 1]	player_wall_head
+ Creeper Head	creeper_head
+ Creeper Wall Head [ids note 1]	creeper_wall_head
+ Dragon Head	dragon_head
+ Dragon Wall Head [ids note 1]	dragon_wall_head
+Rename	 Firework Rocket	fireworks	 Firework Rocket	firework_rocket
+Rename	 Firework Star	firework_charge	 Firework Star	firework_star
+Rename	 Nether Brick	netherbrick	 Nether Brick	nether_brick
+Separate and merge	 Banner [ids note 1]	standing_banner	 White Banner	white_banner
+ Orange Banner	orange_banner
+ Magenta Banner	magenta_banner
+ Light Blue Banner	light_blue_banner
+ Yellow Banner	yellow_banner
+ Lime Banner	lime_banner
+ Pink Banner	pink_banner
+ Gray Banner	gray_banner
+ Banner	banner	 Light Gray Banner	light_gray_banner
+ Cyan Banner	cyan_banner
+ Purple Banner	purple_banner
+ Blue Banner	blue_banner
+ Brown Banner	brown_banner
+ Green Banner	green_banner
+ Red Banner	red_banner
+ Black Banner	black_banner
+Separate	 Wall Banner [ids note 1]	wall_banner	 White Wall Banner [ids note 1]	white_wall_banner
+ Orange Wall Banner [ids note 1]	orange_wall_banner
+ Magenta Wall Banner [ids note 1]	magenta_wall_banner
+ Light Blue Wall Banner [ids note 1]	light_blue_wall_banner
+ Yellow Wall Banner [ids note 1]	yellow_wall_banner
+ Lime Wall Banner [ids note 1]	lime_wall_banner
+ Pink Wall Banner [ids note 1]	pink_wall_banner
+ Gray Wall Banner [ids note 1]	gray_wall_banner
+ Light Gray Wall Banner [ids note 1]	light_gray_wall_banner
+ Cyan Wall Banner [ids note 1]	cyan_wall_banner
+ Purple Wall Banner [ids note 1]	purple_wall_banner
+ Blue Wall Banner [ids note 1]	blue_wall_banner
+ Brown Wall Banner [ids note 1]	brown_wall_banner
+ Green Wall Banner [ids note 1]	green_wall_banner
+ Red Wall Banner [ids note 1]	red_wall_banner
+ Black Wall Banner [ids note 1]	black_wall_banner
+Rename	 Popped Chorus Fruit	chorus_fruit_popped	 Popped Chorus Fruit	popped_chorus_fruit
+Rename	 Music Disc	record_13	 Music Disc	music_disc_13
+Rename	 Music Disc	record_cat	 Music Disc	music_disc_cat
+Rename	 Music Disc	record_blocks	 Music Disc	music_disc_blocks
+Rename	 Music Disc	record_chirp	 Music Disc	music_disc_chirp
+Rename	 Music Disc	record_far	 Music Disc	music_disc_far
+Rename	 Music Disc	record_mall	 Music Disc	music_disc_mall
+Rename	 Music Disc	record_mellohi	 Music Disc	music_disc_mellohi
+Rename	 Music Disc	record_stal	 Music Disc	music_disc_stal
+Rename	 Music Disc	record_strad	 Music Disc	music_disc_strad
+Rename	 Music Disc	record_ward	 Music Disc	music_disc_ward
+Rename	 Music Disc	record_11	 Music Disc	music_disc_11
+Rename	 Music Disc	record_wait	 Music Disc	music_disc_wait
