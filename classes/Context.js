@@ -1,8 +1,11 @@
+const path = require("path");
+
+const Function = require("../classes/Function.js");
 const Scope = require("./Scope.js");
+
 const genId = require("../utils/genId.js");
 const replaceAll = require("../utils/replaceAll.js");
-const path = require("path");
-const Function = require("../classes/Function.js");
+const { cleanup } = require("../utils/textUtils.js");
 
 module.exports = class Context {
     constructor(buildContext, config) {
@@ -14,6 +17,9 @@ module.exports = class Context {
         this.selectors = {};
         this.functions = {};
         this.classes = {};
+        this.scoreboards = {};
+
+        this.setupFileOutput = this.config.writeSetupFile ? buildContext.output.createOutput(path.resolve(this.getRoot(), "./setup.mcfunction")) : null;
     }
 
     setScope(scope = new Scope()) {
@@ -48,7 +54,7 @@ module.exports = class Context {
         if (match) {
             return match.resolve(args);
         } else {
-            this.buildContext.consoleOutput.warn(`$Function '${id}' was not defined. Skipping call.`);
+            this.buildContext.consoleOutput.warn(`Function '${id}' was not defined. Skipping call.`);
             return "> # Function call was skipped. Not defined.";
         }
     }
@@ -57,9 +63,30 @@ module.exports = class Context {
         this.classes[commandClass.id] = commandClass;
     }
 
-    createOutput(fileName) {
+    addScoreboard(name) {
+        if (this.scoreboards[name] === undefined) {
+            this.scoreboards[name] = true;
+
+            if (this.setupFileOutput) {
+                this.setupFileOutput.append(`scoreboard objectives add ${name} dummy\n`);
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    getRoot() {
         var rawConfig = this.buildContext.config.rawConfig;
         var outputDir = rawConfig.outputDir;
+
+        return outputDir;
+    }
+
+    createOutput(fileName) {
+        var outputDir = this.getRoot();
         var { generatedFilePath } = this.config;
 
         return this.buildContext.output.createOutput(path.resolve(outputDir, generatedFilePath, fileName));
@@ -72,13 +99,14 @@ module.exports = class Context {
 
         output.functionLocation = this.config.namespace + ":" + replaceAll(output.relativePath, path.sep, "/").replace(".mcfunction", "");
         
+        data = cleanup(data);
+
         output.write(data);
         return output;
     }
 
     writeFunction(data) {
         const output = this.write(data);
-
         return `function ${output.functionLocation}`;
     }
 }

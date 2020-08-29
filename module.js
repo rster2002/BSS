@@ -6,5 +6,6 @@ module.exports = {
         namespace: "minecraft",
         generatedFilePath: "./bss-generated",
         splitFunctionsIntoFiles: false,
+        writeSetupFile: false,
     },
 }

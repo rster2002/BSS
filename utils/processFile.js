@@ -20,7 +20,7 @@ module.exports = function processFile(content, context = new Context()) {
     // Inflate left-over bodies, do final cleanup and return the processed lines
     lines = inflateBodies(lines, context);
     lines = cleanup(lines);
-    lines = lines.split("\n").map(line => line.trim()).join("\n")
+    lines = lines.split("\n").map(line => line.trim()).join("\n");
 
     return lines;
 }

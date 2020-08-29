@@ -1,5 +1,6 @@
 const commandsMap = require("../commands.js");
 const { deflateSelectors, inflateSelectors } = require("./selectorUtils.js");
+const replaceAll = require("./replaceAll.js");
 
 module.exports = function processCommand(command, context, lineIndex = 0) {
     // Cleanup command and check for continuing commands
@@ -8,9 +9,19 @@ module.exports = function processCommand(command, context, lineIndex = 0) {
 
     // If the line consists of multiple command, recursively call the processCommand function
     if (commands.length > 1) {
-        return commands
-            .map((command, index) => processCommand(command, context, index))
-            .join(" run ");
+        let lastSection = "";
+        commands.forEach((command, index) => {
+            var processedCommand = processCommand(command, context, index);
+
+            // If the last section contains a continue block, paste the command into that block
+            if (lastSection.includes("<continue>")) {
+                lastSection = replaceAll(lastSection, "<continue>", "run " + processedCommand);
+            } else {
+                lastSection += (index > 0 ? " run " : "") + processedCommand;
+            }
+        });
+
+        return lastSection;
     }
 
     // If the command is a bodyId, process it and write to a separate file
