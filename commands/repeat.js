@@ -1,6 +1,8 @@
 const InvalidSyntaxError = require("../classes/InvalidSyntaxError.js");
 
 module.exports = function(args, context) {
+    const processFile = require("../utils/processFile.js");
+
     var [range, optionalVariable, body] = args;
     var optionalVariablePresent = body !== undefined;
 
@@ -18,6 +20,13 @@ module.exports = function(args, context) {
     min = Number(min);
     max = Number(max);
 
+    let orderRevered = min > max;
+    if (orderRevered) {
+        let temp = min;
+        min = max;
+        max = temp;
+    }
+
     var processedBodies = [];
     for (var i = min; i <= max; i++) {
         let args = {};
@@ -26,8 +35,8 @@ module.exports = function(args, context) {
             args[optionalVariable] = i;
         }
 
-        processedBodies.push(context.getBody(body, args));
+        processedBodies.push(processFile(context.getBody(body, args), context));
     }
 
-    return processedBodies.join("\n");
+    return orderRevered ? processedBodies.reverse() : processedBodies;
 }

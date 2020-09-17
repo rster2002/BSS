@@ -11,6 +11,7 @@ function functionResponseToString(args, context, returnValue) {
     if (typeof returnValue === "string") textValue = returnValue;
     else if (Array.isArray(returnValue)) textValue = returnValue.join("\n");
     else if (typeof returnValue === "function") textValue = functionResponseToString(args, context, returnValue(args, context));
+    else if (returnValue === null) textValue = "";
     else {
         textValue = "invalid_command_return_value";
         buildContext.consoleOutput.error("Invalid return value for command");

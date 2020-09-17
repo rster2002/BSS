@@ -56,7 +56,7 @@ module.exports = class Context {
             bodyContent = this.evalArguments(bodyContent, args);
         }
 
-        return bodyContent;
+        return cleanup(bodyContent);
     }
 
     addFunction(id, body, params) {

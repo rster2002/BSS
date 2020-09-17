@@ -1,5 +1,5 @@
 const { EOL } = require("os");
-const replaceAll = require("./replaceAll.js");
+const replaceAll = require("./replaceAll.js")
 
 function removeUnused(string, character) {
     return string.split(character)
@@ -8,11 +8,13 @@ function removeUnused(string, character) {
 }
 
 function cleanup(string) {
-    if (string.includes("\n")) {
-        return string.split("\n")   
+    if (!string) return string;
+
+    if (string.includes(EOL)) {
+        return string.split(EOL)   
             .map(line => cleanup(line))
             .filter(line => line)
-            .join("\n");
+            .join(EOL);
     }
 
     string = replaceAll(string, "\t", "");

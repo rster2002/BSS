@@ -108,6 +108,6 @@ module.exports = function(args, context) {
 
         return commands;
     } else {
-        return evaluateExpression(args);
+        return "execute " + evaluateExpression(args);
     }
 }
