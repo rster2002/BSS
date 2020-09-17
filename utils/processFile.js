@@ -13,11 +13,19 @@ function processJsExpressions(string, context) {
     do {
         match = buildContext.tools.balancedMatch("#{", "}", string);
 
-        let body = match.body;
-        matchBody = `#{${body}}`;
+        if (match) {
+            let body = match.body;
+            matchBody = `#{${body}}`;
+    
+            let bodyResult = "unhandled_expression";
+            try {
+                bodyResult = eval(body);
+            } catch {
+                buildContext.consoleOutput.error("Value expression was invalid");
+            }
 
-        let bodyResult = eval(match);
-        string.replace(matchBody, bodyResult);
+            string = string.replace(matchBody, bodyResult);
+        }
     } while (match);
 
     return string;
