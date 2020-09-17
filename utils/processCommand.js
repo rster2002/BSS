@@ -4,6 +4,21 @@ const InvalidValueError = require("../classes/InvalidValueError.js");
 const { deflateSelectors, inflateSelectors } = require("./selectorUtils.js");
 const replaceAll = require("./replaceAll.js");
 
+function functionResponseToString(args, context, returnValue) {
+    const { buildContext } = context;
+
+    // Checks the returned value and processes it accordingly
+    if (typeof returnValue === "string") textValue = returnValue;
+    else if (Array.isArray(returnValue)) textValue = returnValue.join("\n");
+    else if (typeof returnValue === "function") textValue = functionResponseToString(args, context, returnValue(args, context));
+    else {
+        textValue = "invalid_command_return_value";
+        buildContext.consoleOutput.error("Invalid return value for command");
+    }
+
+    return textValue;
+}
+
 module.exports = function processCommand(command, context, lineIndex = 0) {
     // Get buildContext
     const { buildContext } = context;
@@ -49,14 +64,17 @@ module.exports = function processCommand(command, context, lineIndex = 0) {
     if (match) {
         try {
             let returnValue = match(args, context);
-            returnValue = inflateSelectors(returnValue, context);
+            let textValue = "";
+
+            textValue = functionResponseToString(args, context, returnValue);
+            textValue = inflateSelectors(textValue, context);
             
             // If the return value is multiple and it's not rooted at the beginning of the line, write it into its own function
-            if (!returnValue) return "";
-            if (returnValue.includes("\n") && lineIndex !== 0) {
-                return context.writeFunction(returnValue);
+            if (!textValue) return "";
+            if (textValue.includes("\n") && lineIndex !== 0) {
+                return context.writeFunction(textValue);
             } else {
-                return returnValue;
+                return textValue;
             }
         } catch(error) {
             if (error instanceof InvalidSyntaxError || error instanceof InvalidValueError) {

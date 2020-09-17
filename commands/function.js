@@ -4,7 +4,14 @@ module.exports = function(args, context) {
 
     if (callLocation.includes(config.namespace + ":")) {
         let fileLocation = callLocation.replace(config.namespace + ":", "");
-        buildContext.input.buildSync(`./${fileLocation}.mcfunction`);
+
+        if (fileLocation.includes(".js")) {
+            let moduleResponse = buildContext.files.readModuleFromSourceDir("./" + fileLocation);
+
+            return moduleResponse;
+        } else {
+            buildContext.input.buildSync(`./${fileLocation}.mcfunction`);
+        }
     }
 
     return `function ${args.join(" ")}`;
