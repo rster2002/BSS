@@ -6,6 +6,7 @@ const Scope = require("./Scope.js");
 const genId = require("../utils/genId.js");
 const replaceAll = require("../utils/replaceAll.js");
 const { cleanup } = require("../utils/textUtils.js");
+const InvalidValueError = require("./InvalidValueError.js");
 
 module.exports = class Context {
     constructor(buildContext, config) {
@@ -40,8 +41,22 @@ module.exports = class Context {
         return id;
     }
 
-    getBody(id) {
-        return this.bodies[id];
+    evalArguments(string, args = {}) {
+        for (var [key, value] of Object.entries(args)) {
+            string = replaceAll(string, "$" + key, value);
+        }
+
+        return string;
+    }
+
+    getBody(id, args = null) {
+        var bodyContent = this.bodies[id];
+
+        if (args) {
+            bodyContent = this.evalArguments(bodyContent, args);
+        }
+
+        return bodyContent;
     }
 
     addFunction(id, body, params) {
@@ -54,8 +69,9 @@ module.exports = class Context {
         if (match) {
             return match.resolve(args);
         } else {
-            this.buildContext.consoleOutput.warn(`Function '${id}' was not defined. Skipping call.`);
-            return "> # Function call was skipped. Not defined.";
+            throw new InvalidValueError("functionCall", `Function '${id}' was not defined. Skipping call.`);
+            // this.buildContext.consoleOutput.warn(`Function '${id}' was not defined. Skipping call.`);
+            // return "> # Function call was skipped. Not defined.";
         }
     }
 

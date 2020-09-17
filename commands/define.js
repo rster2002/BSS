@@ -1,4 +1,4 @@
-module.exports = function define(args, context) {
+module.exports = function(args, context) {
     const { buildContext } = context;
 
     // Get the body id

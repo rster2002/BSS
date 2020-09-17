@@ -21,7 +21,7 @@ function getScoreboardOperation(scoreName, operation, value) {
     }
 }
 
-module.exports = function score(args, context) {
+module.exports = function(args, context) {
     const { buildContext } = context;
     var [scoreName, operation, ...expression] = args;
 

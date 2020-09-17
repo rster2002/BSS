@@ -24,14 +24,10 @@ module.exports = class CommandClass {
         var lines = body.split(EOL);
         lines = lines.filter(line => line !== "");
 
-        console.log(lines);
-
         for (var line of lines) {
             line = cleanup(line);
             let words = line.split(" ");
             let [methodName, bodyId] = words;
-
-            console.log(methodName, bodyId);
 
             methods[methodName] = processFile(
                 context.getBody(bodyId),

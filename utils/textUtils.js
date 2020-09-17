@@ -16,6 +16,7 @@ function cleanup(string) {
     }
 
     string = replaceAll(string, "\t", "");
+    string = removeUnused(string, "\n");
     string = removeUnused(string, EOL);
     string = removeUnused(string, " ");
 

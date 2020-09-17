@@ -1,8 +1,13 @@
 const commandsMap = require("../commands.js");
+const InvalidSyntaxError = require("../classes/InvalidSyntaxError.js");
+const InvalidValueError = require("../classes/InvalidValueError.js");
 const { deflateSelectors, inflateSelectors } = require("./selectorUtils.js");
 const replaceAll = require("./replaceAll.js");
 
 module.exports = function processCommand(command, context, lineIndex = 0) {
+    // Get buildContext
+    const { buildContext } = context;
+
     // Cleanup command and check for continuing commands
     command = command.trim();
     var commands = command.split(" run ");
@@ -42,15 +47,23 @@ module.exports = function processCommand(command, context, lineIndex = 0) {
 
     // If the keyword matches a command process it
     if (match) {
-        let returnValue = match(args, context);
-        returnValue = inflateSelectors(returnValue, context);
-
-        // If the return value is multiple and it's not rooted at the beginning of the line, write it into its own function
-        if (!returnValue) return "";
-        if (returnValue.includes("\n") && lineIndex !== 0) {
-            return context.writeFunction(returnValue);
-        } else {
-            return returnValue;
+        try {
+            let returnValue = match(args, context);
+            returnValue = inflateSelectors(returnValue, context);
+            
+            // If the return value is multiple and it's not rooted at the beginning of the line, write it into its own function
+            if (!returnValue) return "";
+            if (returnValue.includes("\n") && lineIndex !== 0) {
+                return context.writeFunction(returnValue);
+            } else {
+                return returnValue;
+            }
+        } catch(error) {
+            if (error instanceof InvalidSyntaxError || error instanceof InvalidValueError) {
+                buildContext.consoleOutput.warn(error.message);
+            } else {
+                buildContext.consoleOutput.error(error.message);
+            }
         }
     }
 

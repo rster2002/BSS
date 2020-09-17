@@ -1,4 +1,4 @@
-module.exports = function as(args, context) {
+module.exports = function(args, context) {
     const { buildContext } = context;
     const processFile = require("../utils/processFile.js");
 
