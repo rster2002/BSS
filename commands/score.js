@@ -25,9 +25,11 @@ module.exports = function(args, context) {
     const { buildContext } = context;
     var [scoreName, operation, ...expression] = args;
 
+    // Check whether or not it should initialize a scoreboard
     var shouldAddScoreboard = context.addScoreboard(scoreName);
     var scoreboardInitializer = shouldAddScoreboard ? `scoreboard objectives add ${scoreName} dummy` : "";
 
+    // Check whether its only a declaration or it includes a operation
     if (expression.length === 1) {
         let [value] = expression;
         let scoreboardOperation = getScoreboardOperation(scoreName, operation, value);
@@ -35,6 +37,7 @@ module.exports = function(args, context) {
         return `${scoreboardInitializer}
         ${scoreboardOperation}`;
     } else if (expression.length === 3) {
+        // Get the values and repair the expressionString
         let [leftSide, operator, rightSide] = expression;
         let commands = [];
         let expressionString = expression.join(" ");
