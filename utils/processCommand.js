@@ -4,6 +4,8 @@ const InvalidValueError = require("../classes/InvalidValueError.js");
 const { deflateSelectors, inflateSelectors } = require("./selectorUtils.js");
 const replaceAll = require("./replaceAll.js");
 
+const continueEntity = "<continue>";
+
 function functionResponseToString(args, context, returnValue) {
     const { buildContext } = context;
 
@@ -20,6 +22,15 @@ function functionResponseToString(args, context, returnValue) {
     return textValue;
 }
 
+function processResult(context, lineIndex, textValue) {
+    if (!textValue) return "";
+    if (!textValue.includes(continueEntity) && textValue.includes("\n") && lineIndex !== 0) {
+        return context.writeFunction(textValue);
+    } else {
+        return textValue;
+    }
+}
+
 module.exports = function processCommand(command, context, lineIndex = 0) {
     // Get buildContext
     const { buildContext } = context;
@@ -30,19 +41,31 @@ module.exports = function processCommand(command, context, lineIndex = 0) {
 
     // If the line consists of multiple command, recursively call the processCommand function
     if (commands.length > 1) {
-        let lastSection = "";
-        commands.forEach((command, index) => {
-            var processedCommand = processCommand(command, context, index);
+        // Process all commands for later use
+        let processedCommands = commands.map((command, arrayIndex) => {
+            var lineIndex = commands.length - arrayIndex - 1;
+            var processedCommand = processCommand(command, context, lineIndex);
 
-            // If the last section contains a continue block, paste the command into that block
-            if (lastSection.includes("<continue>")) {
-                lastSection = replaceAll(lastSection, "<continue>", "run " + processedCommand);
-            } else {
-                lastSection += (index > 0 ? " run " : "") + processedCommand;
-            }
+            return processedCommand;
         });
 
-        return lastSection;
+        let processSection = (index = 0) => {
+            var command = processedCommands[index];
+            var nextCommand = processedCommands[index + 1];
+
+            // Check whether or there is a next command in the queue, and if to, add a continueEntity to the end of the command
+            if (!command.includes(continueEntity) && nextCommand) command += " " + continueEntity;
+
+            // If there is a continueEntity present, replace it with the next command in the queue
+            if (command.includes(continueEntity)) command = replaceAll(command, continueEntity, "run " + processSection(index + 1));
+            
+            // If the command contains multiple lines, put it into it's own function
+            if (command.includes("\n") && index > 0) command = context.writeFunction(command);
+
+            return command;
+        }
+
+        return processSection();
     }
 
     // If the command is a bodyId, process it and write to a separate file
@@ -69,14 +92,10 @@ module.exports = function processCommand(command, context, lineIndex = 0) {
 
             textValue = functionResponseToString(args, context, returnValue);
             textValue = inflateSelectors(textValue, context);
-            
+
             // If the return value is multiple and it's not rooted at the beginning of the line, write it into its own function
-            if (!textValue) return "";
-            if (textValue.includes("\n") && lineIndex !== 0) {
-                return context.writeFunction(textValue);
-            } else {
-                return textValue;
-            }
+            return textValue;
+            // return processResult(context, lineIndex, textValue);
         } catch(error) {
             if (error instanceof InvalidSyntaxError || error instanceof InvalidValueError) {
                 buildContext.consoleOutput.warn(error.message);
