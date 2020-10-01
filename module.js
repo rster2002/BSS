@@ -7,5 +7,7 @@ module.exports = {
         generatedFilePath: "./bss-generated",
         splitFunctionsIntoFiles: false,
         writeSetupFile: false,
+        removeTempScoreboards: true,
+        dev: false,
     },
 }

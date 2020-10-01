@@ -3,7 +3,6 @@ const path = require("path");
 const Function = require("../classes/Function.js");
 const Scope = require("./Scope.js");
 
-const genId = require("../utils/genId.js");
 const replaceAll = require("../utils/replaceAll.js");
 const { cleanup } = require("../utils/textUtils.js");
 const InvalidValueError = require("./InvalidValueError.js");
@@ -23,19 +22,28 @@ module.exports = class Context {
         this.setupFileOutput = this.config.writeSetupFile ? buildContext.output.createOutput(path.resolve(this.getRoot(), "./setup.mcfunction")) : null;
     }
 
+    error(message = "An unexpected error accrued", location = "Error") {
+        this.buildContext.consoleOutput.error(`${location} > ${message}`);
+        return location + " > # " + message;
+    }
+
     setScope(scope = new Scope()) {
         this.scope = scope;
     }
+
+    isSelector(selector) {
+        return this.selectors[selector] !== undefined;
+    }
     
     addSelector(selector) {
-        var id = "selector-" + genId();
+        var id = "selector-" + this.buildContext.tools.quickHash(selector);
         this.selectors[id] = selector;
 
         return id;
     }
 
     addBody(body) {
-        var id = "body-" + genId();
+        var id = "body-" + this.buildContext.tools.quickHash(body);
         this.bodies[id] = body;
 
         return id;
@@ -47,6 +55,10 @@ module.exports = class Context {
         }
 
         return string;
+    }
+
+    isBody(id) {
+        return this.bodies[id] !== undefined;
     }
 
     getBody(id, args = null) {

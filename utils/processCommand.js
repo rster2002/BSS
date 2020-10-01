@@ -54,7 +54,7 @@ module.exports = function processCommand(command, context, lineIndex = 0) {
             var nextCommand = processedCommands[index + 1];
 
             // Check whether or there is a next command in the queue, and if to, add a continueEntity to the end of the command
-            if (!command.includes(continueEntity) && nextCommand) command += " " + continueEntity;
+            if (!command.includes("\n") && !command.includes(continueEntity) && nextCommand) command += " " + continueEntity;
 
             // If there is a continueEntity present, replace it with the next command in the queue
             if (command.includes(continueEntity)) command = replaceAll(command, continueEntity, "run " + processSection(index + 1));
@@ -90,17 +90,18 @@ module.exports = function processCommand(command, context, lineIndex = 0) {
             let returnValue = match(args, context);
             let textValue = "";
 
+            // Process the multiple ways commands can be returned from commands and inflate left over selectors
             textValue = functionResponseToString(args, context, returnValue);
             textValue = inflateSelectors(textValue, context);
 
-            // If the return value is multiple and it's not rooted at the beginning of the line, write it into its own function
             return textValue;
-            // return processResult(context, lineIndex, textValue);
         } catch(error) {
             if (error instanceof InvalidSyntaxError || error instanceof InvalidValueError) {
                 buildContext.consoleOutput.warn(error.message);
-            } else {
+            } else if (!context.config.dev) {
                 buildContext.consoleOutput.error(error.message);
+            } else {
+                throw error;
             }
         }
     }

@@ -10,6 +10,7 @@ const commentCommand = require("./commands/comment.js");
 const functionCommand = require("./commands/function.js");
 const ifCommand = require("./commands/if.js");
 const repeatCommand = require("./commands/repeat.js");
+const ifDataCommand = require("./commands/ifdata.js");
 
 module.exports = {
     as: asCommand,
@@ -23,5 +24,6 @@ module.exports = {
     function: functionCommand,
     if: ifCommand,
     repeat: repeatCommand,
+    ifdata: ifDataCommand,
     "#": commentCommand,
 }
