@@ -1,4 +1,5 @@
 function getScoreboardOperation(scoreName, operation, value) {
+    value = parseValue(value);
     var isNumericValue = !isNaN(value);
 
     // Find the right command for the operation
@@ -19,6 +20,12 @@ function getScoreboardOperation(scoreName, operation, value) {
     } else {
         return `scoreboard players operation @s ${scoreName} ${operation} @s ${value}`
     }
+}
+
+function parseValue(value) {
+    if (value === "true") return 1;
+    else if (value === "false") return 0;
+    else return value;
 }
 
 module.exports = function(args, context) {

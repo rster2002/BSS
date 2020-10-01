@@ -16,8 +16,12 @@ function processDataExpression(context, dataExpression) {
     var operator = words.shift();
     var rightSideTarget = words.shift();
 
+    
     // Check whether or not the rightSide is a selector and if not, interpret it as a block
-    if (!context.isSelector(rightSideTarget)) {
+    if (operator === "matches") {
+        // Add the target back to the words because the target is the path
+        words.unshift(rightSideTarget);
+    } else if (!context.isSelector(rightSideTarget)) {
         rightSideTarget = `block ${rightSideTarget} ${words.shift()} ${words.shift()}`;
     } else {
         rightSideTarget = `entity ${rightSideTarget}`;
@@ -38,6 +42,10 @@ function processDataExpression(context, dataExpression) {
     if (operator === "==") {
         commands.push(`data modify storage ${store} Value set from ${leftSideTarget} ${leftSidePath}
         execute store success score Success ${scoreboard} run data modify storage ${store} Value set from ${rightSideTarget} ${rightSidePath}
+        execute if score Success ${scoreboard} matches 1 run <continue>`);
+    } else if (operator === "matches") {
+        commands.push(`data modify storage ${store} Value set from ${leftSideTarget} ${leftSidePath}
+        execute store success score Success ${scoreboard} run data modify storage ${store} Value set value ${rightSidePath}
         execute if score Success ${scoreboard} matches 1 run <continue>`);
     } else {
         return context.error("Invalid operator", "ifdata");
