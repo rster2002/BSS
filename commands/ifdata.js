@@ -42,11 +42,11 @@ function processDataExpression(context, dataExpression) {
     if (operator === "==") {
         commands.push(`data modify storage ${store} Value set from ${leftSideTarget} ${leftSidePath}
         execute store success score Success ${scoreboard} run data modify storage ${store} Value set from ${rightSideTarget} ${rightSidePath}
-        execute if score Success ${scoreboard} matches 1 run <continue>`);
+        execute if score Success ${scoreboard} matches 0 <continue>`);
     } else if (operator === "matches") {
         commands.push(`data modify storage ${store} Value set from ${leftSideTarget} ${leftSidePath}
         execute store success score Success ${scoreboard} run data modify storage ${store} Value set value ${rightSidePath}
-        execute if score Success ${scoreboard} matches 1 run <continue>`);
+        execute if score Success ${scoreboard} matches 0 <continue>`);
     } else {
         return context.error("Invalid operator", "ifdata");
     }
