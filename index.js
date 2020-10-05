@@ -7,6 +7,7 @@ module.exports = function(inputFile, config) {
 
     if (!buildContext.bssContext) buildContext.bssContext = new Context(inputFile.context, config);
 
+    
     const processed = processFile(inputFile.data, buildContext.bssContext);
 
     fileOutput.write(processed);

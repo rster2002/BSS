@@ -1,4 +1,5 @@
 const { match } = require("assert");
+const replaceAll = require("./replaceAll.js");
 
 function deflateBodies(input, context) {
     const { buildContext } = context;
@@ -18,7 +19,7 @@ function inflateBodies(input, context) {
     var entries = Object.entries(context.bodies);
 
     for (var [id, body] of entries) {
-        input = input.replace(id, `{${body}}`);
+        input = replaceAll(input, id, `{${body}}`);
     }
 
     return input;

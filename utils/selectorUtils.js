@@ -1,3 +1,5 @@
+const replaceAll = require("./replaceAll.js");
+
 function deflateSelectors(input, context) {
     var expression = /\@[parse](\[.+\])?/;
 
@@ -15,7 +17,7 @@ function inflateSelectors(input, context) {
     var entries = Object.entries(context.selectors);
 
     for (var [id, selector] of entries) {
-        input = input.replace(id, selector);
+        input = replaceAll(input, id, selector);
     }
 
     return input;
