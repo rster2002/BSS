@@ -16,7 +16,7 @@ function functionResponseToString(args, context, returnValue) {
     else if (returnValue === null) textValue = "";
     else {
         textValue = "invalid_command_return_value";
-        buildContext.consoleOutput.error("Invalid return value for command");
+        buildContext.consoleOutput.error(`Invalid return value for command: ${returnValue}, command arguments: ${args.join(", ")}`);
     }
 
     return textValue;
@@ -34,6 +34,9 @@ function processResult(context, lineIndex, textValue) {
 module.exports = function processCommand(command, context, lineIndex = 0) {
     // Get buildContext
     const { buildContext } = context;
+
+    // Check if line is a comment
+    if (command[0] === "#") return;
 
     // Cleanup command and check for continuing commands
     command = command.trim();
