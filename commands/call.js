@@ -24,7 +24,7 @@ module.exports = function(args, context) {
 
     // If the option 'splitFunctionsIntoFiles' is set to true, every call will create a separate file, otherwise it will return it like normal
     if (context.config.splitFunctionsIntoFiles) {
-        let fileName = buildContext.tools.quickHash(processedBody);
+        let fileName = context.namespaceHash(processedBody);
     
         const output = context.createOutput(`./${fileName}.mcfunction`);
         output.write(processedBody);

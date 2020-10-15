@@ -6,7 +6,7 @@ module.exports = function(inputFile, config) {
     const fileOutput = inputFile.createOutput();
     const { context: buildContext } = inputFile;
 
-    if (!buildContext.bssContext) buildContext.bssContext = new Context(inputFile.context, config);
+    if (!buildContext.bssContext) buildContext.bssContext = Context(inputFile.context, config);
 
     buildContext.files.deleteGlob(path.resolve(buildContext.config.outputDir, config.generatedFilePath, "./*.mcfunction"));
     const processed = processFile(inputFile.data, buildContext.bssContext);

@@ -6,31 +6,6 @@ const { deflateBodies, inflateBodies } = require("./bodyUtils.js");
 const { EOL } = require("os");
 const { cleanup } = require("./textUtils.js");
 
-function processJsExpressions(string, context) {
-    const { buildContext } = context;
-    
-    var match;
-    do {
-        match = buildContext.tools.balancedMatch("#{", "}", string);
-
-        if (match) {
-            let body = match.body;
-            matchBody = `#{${body}}`;
-    
-            let bodyResult = "unhandled_expression";
-            try {
-                bodyResult = eval(body);
-            } catch {
-                buildContext.consoleOutput.error("Value expression was invalid");
-            }
-
-            string = string.replace(matchBody, bodyResult);
-        }
-    } while (match);
-
-    return string;
-}
-
 module.exports = function processFile(content, context = new Context()) {
     // Removed things like tabs, leading and trailing spaces, and delate bodies for better pattern handling
     content = cleanup(content);
@@ -44,7 +19,6 @@ module.exports = function processFile(content, context = new Context()) {
 
     // Inflate left-over bodies, do final cleanup and return the processed lines
     lines = inflateBodies(lines, context);
-    lines = processJsExpressions(lines, context);
     lines = cleanup(lines);
     lines = lines.split("\n").map(line => line.trim()).join("\n");
 

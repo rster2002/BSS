@@ -2,6 +2,7 @@ const commandsMap = require("../commands.js");
 const InvalidSyntaxError = require("../classes/InvalidSyntaxError.js");
 const InvalidValueError = require("../classes/InvalidValueError.js");
 const { deflateSelectors, inflateSelectors } = require("./selectorUtils.js");
+const { deflateBodies, inflateBodies } = require("./bodyUtils.js");
 const replaceAll = require("./replaceAll.js");
 
 const continueEntity = "<continue>";
@@ -31,6 +32,33 @@ function processResult(context, lineIndex, textValue) {
     }
 }
 
+function processJsExpressions(string, context) {
+    string = inflateBodies(string, context);
+    const { buildContext } = context;
+
+    var match;
+    do {
+        match = buildContext.tools.balancedMatch("#{", "}", string);
+
+        if (match) {
+            let body = match.body;
+            matchBody = `#{${body}}`;
+
+            let bodyResult = "unhandled_expression";
+            try {
+                bodyResult = eval(body);
+            } catch(e) {
+                console.log(e.message);
+                buildContext.consoleOutput.error("Value expression was invalid");
+            }
+
+            string = string.replace(matchBody, bodyResult);
+        }
+    } while (match);
+
+    return deflateBodies(string, context);
+}
+
 module.exports = function processCommand(command, context, lineIndex = 0) {
     // Get buildContext
     const { buildContext } = context;
@@ -41,6 +69,9 @@ module.exports = function processCommand(command, context, lineIndex = 0) {
     // Cleanup command and check for continuing commands
     command = command.trim();
     var commands = command.split(" run ");
+
+    // Set the continue hash
+    if (commands.length > 1) context.continueHash = buildContext.tools.quickHash(commands.join(" "));
 
     // If the line consists of multiple command, recursively call the processCommand function
     if (commands.length > 1) {
@@ -82,6 +113,7 @@ module.exports = function processCommand(command, context, lineIndex = 0) {
 
     // Deflate the selectors into single 'words' for better pattern handling
     command = deflateSelectors(command, context);
+    command = processJsExpressions(command, context);
 
     // Get the required info from the command
     var [keyword, ...args] = command.split(" ");
@@ -96,6 +128,7 @@ module.exports = function processCommand(command, context, lineIndex = 0) {
             // Process the multiple ways commands can be returned from commands and inflate left over selectors
             textValue = functionResponseToString(args, context, returnValue);
             textValue = inflateSelectors(textValue, context);
+            textValue = processJsExpressions(textValue, context);
 
             return textValue;
         } catch(error) {

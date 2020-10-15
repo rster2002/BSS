@@ -31,7 +31,7 @@ function processDataExpression(context, dataExpression) {
     var rightSidePath = words.shift();
 
     // Get the hash for the expression
-    const expressionHash = context.buildContext.tools.quickHash(dataExpression);
+    const expressionHash = context.namespaceHash(dataExpression);
     const store = "t" + expressionHash;
     const scoreboard = "s" + expressionHash;
 

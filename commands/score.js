@@ -29,7 +29,6 @@ function parseValue(value) {
 }
 
 module.exports = function(args, context) {
-    const { buildContext } = context;
     var [scoreName, operation, ...expression] = args;
 
     // Check whether or not it should initialize a scoreboard
@@ -48,7 +47,7 @@ module.exports = function(args, context) {
         let [leftSide, operator, rightSide] = expression;
         let commands = [];
         let expressionString = expression.join(" ");
-        let expressionHash = buildContext.tools.quickHash(expressionString);
+        let expressionHash = context.namespaceHash(expressionString);
 
         commands.push(`scoreboard objectives add ${expressionHash} dummy`);
         commands.push(getScoreboardOperation(expressionHash, "=", leftSide));

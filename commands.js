@@ -13,6 +13,7 @@ const repeatCommand = require("./commands/repeat.js");
 const ifDataCommand = require("./commands/ifdata.js");
 const positionedCommand = require("./commands/positioned.js");
 const setCommand = require("./commands/set.js");
+const onCommand = require("./commands/on.js");
 
 module.exports = {
     as: asCommand,
@@ -29,5 +30,6 @@ module.exports = {
     ifdata: ifDataCommand,
     positioned: positionedCommand,
     set: setCommand,
+    on: onCommand,
     "#": commentCommand,
 }
